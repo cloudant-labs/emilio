@@ -1,0 +1,6 @@
+{application, emilio, [
+    {description, "Apache CouchDB Style Linter"},
+    {vsn, "0.0.0"},
+    {registered, []},
+    {applications, [kernel, stdlib]}
+]}.
