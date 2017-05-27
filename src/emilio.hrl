@@ -11,8 +11,14 @@
 % the License.
 
 -define(EMILIO_CHECKS, [
-    emilio_check_line_length
+    emilio_check_line_length,
+    emilio_check_no_tabs,
+    emilio_check_indentation_units
 ]).
+
+
+-define(EMILIO_REPORT(Loc, Code),
+        emilio_lib:report(?MODULE, Loc, Code, undefined)).
 
 -define(EMILIO_REPORT(Loc, Code, Arg),
         emilio_lib:report(?MODULE, Loc, Code, Arg)).

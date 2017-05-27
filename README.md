@@ -6,6 +6,16 @@ The friendly butler checking your source code.
 Checks
 ---
 
+* 111 indendation is not a multiple of four
+
+* 191 white space contains tabs
+* 192 white space contains form feed
+* 193 line ending has form feed
+* 194 line contains unicode white space
+
+* 501 Line longer than 80 characters
+
+
 Groups of errors and warnings:
 E errors
 W warnings
@@ -19,7 +29,7 @@ W warnings
 900 syntax error
 
 
-E111 indendation is not a multiple of four
+
 E112 expected an indented block
 E113 unexpected indentation
 E114 (comment) indentation is not a multiple of four
@@ -39,7 +49,6 @@ E129 visually indented line with same indent as next logical line
 E131 unaligned for hanging indent
 E133 closing bracket is missing indentation
 
-E191 Indentation contains tabs
 
 E201 whitespace after '%s'
 E202 whitespace before '}])'
@@ -78,7 +87,7 @@ E275 missing whitespace after import keyword
 W291 Trailing whitespace
 W292 Missing newline at end of file
 W293 Blank line contains whitespace
-
+294 No form feeds in source files
 
 E301 expected 1 blank line, found 0
 E302 expected 2 blank lines, found %d
@@ -91,7 +100,7 @@ W391 Trailing blank lines
 E401 multiple imports on one line
 E402 module level import not at top of file
 
-E501 Line longer than 80 characters
+
 E502 the backslash is redundant between brackets
 W503 line break before binary operator
 

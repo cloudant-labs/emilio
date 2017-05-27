@@ -43,7 +43,7 @@ run(Lines) ->
 
 
 check_line(Loc, MaxLength, Line) ->
-    LineTooLong = emilio_lib:line_length(Line) > MaxLength,
+    LineTooLong = line_length(Line) > MaxLength,
     HasLongString = has_long_string(MaxLength, Line),
     if not LineTooLong orelse HasLongString -> ok; true ->
         ?EMILIO_REPORT(Loc, 501, MaxLength)
@@ -77,3 +77,12 @@ check_long(MaxLength, StartCol, Text) ->
                 HasLong
         end
     end, false, TextToks).
+
+
+line_length(Line) ->
+    case lists:last(Line) of
+        {white_space, {_LineNum, Col}, WS} ->
+            Col + length(WS) - 1;
+        {dot, {_LineNum, Col}} ->
+            Col
+    end.

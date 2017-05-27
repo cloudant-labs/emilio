@@ -298,8 +298,9 @@ linearize_expr({bin, Anno, Elems}) ->
     [{bin, Anno, length(Elems)}] ++ LinearElems;
 
 linearize_expr({bin_element, Anno, Expr, Size, TSL}) ->
-    LinearExpr = linearize_expr(Expr),
-    [{bin_element, Anno}] ++ LinearExpr ++ [{bin_size, Size}, {bin_tsl, TSL}];
+    [{bin_element, Anno}]
+            ++ linearize_expr(Expr)
+            ++ [{bin_size, Anno, Size}, {bin_tsl, Anno, TSL}];
 
 linearize_expr({op, Anno, Op, Left, Right}) ->
     LinearLeft = linearize_expr(Left),
@@ -327,6 +328,10 @@ linearize_expr({record_index, _Anno, _Name, _Field} = Elem) ->
 linearize_expr({record_field, Anno, Name, Expr}) ->
     LinearExpr = linearize_expr(Expr),
     [{record_field, Anno, Name}] ++ LinearExpr;
+
+linearize_expr({record_field, Anno, Expr, Name, Field}) ->
+    LinearExpr = linearize_expr(Expr),
+    [{record_field, Anno, Name}] ++ LinearExpr ++ [Field];
 
 linearize_expr({map, Anno, Assocs}) ->
     LinearAssocs = lists:flatmap(fun linearize_expr/1, Assocs),
@@ -387,7 +392,7 @@ linearize_expr({b_generate, Anno, Pattern, Expr}) ->
 
 linearize_expr({block, Anno, Body}) ->
     LinearBody = lists:flatmap(fun linearize_expr/1, Body),
-    [{block_start, Anno}] ++ LinearBody ++ [{block_end, Anno}];
+    [{block_start, Anno}] ++ LinearBody;
 
 linearize_expr({'if', Anno, Clauses}) ->
     LinearClauses = lists:flatmap(fun(C) ->
@@ -419,7 +424,14 @@ linearize_expr({'try', Anno, Body, Cases, Catches, After}) ->
     LinearAfter = if After == [] -> []; true ->
         lists:flatmap(fun linearize_expr/1, After)
     end,
-    [{'try', Anno, length(Body), length(Cases), length(Catches), length(After)}]
+    [{
+        'try',
+        Anno,
+        length(Body),
+        length(Cases),
+        length(Catches),
+        length(After)
+    }]
             ++ LinearBody
             ++ LinearCases
             ++ LinearCatches
@@ -467,9 +479,8 @@ linearize_clause(Type, {clause, Anno, Patterns, Guards, Body}) ->
     LinearPatterns = lists:flatmap(fun linearize_expr/1, Patterns),
     LinearGuards = lists:flatmap(fun linearize_guards/1, Guards),
     LinearBody = lists:flatmap(fun linearize_expr/1, Body),
-    [{Type, Anno, length(Patterns)}]
+    [{Type, Anno, length(Patterns), length(Guards)}]
             ++ LinearPatterns
-            ++ [{guard_seq, Anno, length(Guards)}]
             ++ LinearGuards
             ++ LinearBody.
 
@@ -549,6 +560,9 @@ detextify([Token | RestTokens]) ->
     NewTok = setelement(2, Token, Loc),
     [NewTok] ++ detextify(RestTokens).
 
+
+group_lines([]) ->
+    [];
 
 group_lines([Tok | Rest]) ->
     group_lines(Rest, [Tok], []).
