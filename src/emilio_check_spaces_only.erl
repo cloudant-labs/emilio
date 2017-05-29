@@ -34,7 +34,7 @@ explain(192) ->
 explain(193) ->
     "Just Say No to Windows Line Endings.";
 explain(194) ->
-    "Don't use unicode white space in source files.".
+    "Don't use weird control or unicode code points in white space".
 
 
 format_error(191, _) ->
@@ -44,7 +44,7 @@ format_error(192, _) ->
 format_error(193, _) ->
     "line ending has form feed";
 format_error(194, Code) ->
-    io_lib:format("line contains unicode white space code: ~b", [Code]).
+    io_lib:format("line contains invalid control code: ~b", [Code]).
 
 
 run(Lines) ->
@@ -52,7 +52,7 @@ run(Lines) ->
 
 
 check(Loc, {white_space, _, Text}, Ctx) ->
-    check_ws(Loc, Text, $\n, 191),
+    check_ws(Loc, Text, $\t, 191),
     NewText = check_line_ending(Text, Ctx),
     check_ws(Loc, NewText, $\r, 192),
     check_not_space(Loc, NewText);
@@ -93,9 +93,11 @@ check_line_ending(Text, Ctx) ->
 check_not_space(_Loc, []) ->
     ok;
 
-check_not_space({Line, Col}, [32 | Rest]) ->
-    check_not_space({Line, Col + 1}, Rest);
-
-check_not_space({Line, Col} = Loc, [NotSpace | Rest]) ->
-    ?EMILIO_REPORT(Loc, 194, NotSpace),
+check_not_space({Line, Col} = Loc, [C | Rest]) ->
+    case lists:member(C, " \r\t\n") of
+        true ->
+            ok;
+        false ->
+            ?EMILIO_REPORT(Loc, 194, C)
+    end,
     check_not_space({Line, Col + 1}, Rest).

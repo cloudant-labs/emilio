@@ -11,7 +11,7 @@ Checks
 * 191 white space contains tabs
 * 192 white space contains form feed
 * 193 line ending has form feed
-* 194 line contains unicode white space
+* 194 whitespace contains invalid control or unicode code point
 
 * 501 Line longer than 80 characters
 

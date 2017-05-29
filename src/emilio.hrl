@@ -12,7 +12,7 @@
 
 -define(EMILIO_CHECKS, [
     emilio_check_line_length,
-    emilio_check_no_tabs,
+    emilio_check_spaces_only,
     emilio_check_indentation_units
 ]).
 
