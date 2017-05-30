@@ -31,9 +31,10 @@ file(FilePath) ->
     MacroedTokens = macroize(AllTokens),
     {CodeTokens, _NonCodeTokens} = split_code(MacroedTokens),
     Forms = parse_forms(CodeTokens, []),
-    Linearized = lists:flatmap(fun linearize/1, Forms),
+    Linearized = lists:flatmap(fun(F) -> linearize(F, 0) end, Forms),
     Rewhitespaced = rewhitespace(MacroedTokens),
     Reinserted = reinsert_tokens(Rewhitespaced, Linearized),
+    io:format(standard_error, "~5000p~n", [Reinserted]),
     DeTexted = detextify(Reinserted),
     group_lines(DeTexted).
 
@@ -89,405 +90,409 @@ parse_forms(Tokens, Acc) ->
 
 
 
-linearize({attribute, _Anno, module, _Name} = Elem) ->
-    [Elem];
+linearize({attribute, _Anno, module, _Name} = Elem, Depth) ->
+    set_depth(Elem, Depth);
 
-linearize({attribute, _Anno, behavior, _Name} = Elem) ->
-    [Elem];
+linearize({attribute, _Anno, behavior, _Name} = Elem, Depth) ->
+    set_depth(Elem, Depth);
 
-linearize({attribute, _Anno, beahviour, _Name} = Elem) ->
-    [Elem];
+linearize({attribute, _Anno, beahviour, _Name} = Elem, Depth) ->
+    set_depth(Elem, Depth);
 
-linearize({attribute, Anno, export, FAList}) ->
-    Exports = [{export, Anno, F, A} || {F, A} <- FAList],
-    [{attribute, Anno, export} | Exports];
+linearize({attribute, Anno, export, FAList}, Depth) ->
+    Exports = lists:map(fun({F, A}) ->
+        hd(set_depth({export, Anno, F, A}, Depth + 1))
+    end, FAList),
+    set_depth({attribute, Anno, export}, Depth) ++ Exports;
 
-linearize({attribute, Anno, import, {Module, FAList}}) ->
-    Imports = [{import, Anno, F, A} || {F, A} <- FAList],
-    [{attribute, Anno, import, Module} | Imports];
+linearize({attribute, Anno, import, {Module, FAList}}, Depth) ->
+    Imports = lists:map(fun({F, A}) ->
+        hd(set_depth({import, Anno, F, A}, Depth + 1))
+    end, FAList),
+    set_depth({attribute, Anno, import, Module}, Depth) ++ Imports;
 
-linearize({attribute, Anno, export_type, TAList}) ->
-    Types = [{export_type, Anno, T, A} || {T, A} <- TAList],
-    [{attribute, Anno, export_type, length(TAList)} | Types];
+linearize({attribute, Anno, export_type, TAList}, Depth) ->
+    ExportTypes = lists:map(fun({T, A}) ->
+        hd(set_depth({export_type, Anno, T, A}, Depth + 1))
+    end, TAList),
+    set_depth({attribute, Anno, export_type, length(TAList)}, Depth)
+            ++ ExportTypes;
 
-linearize({attribute, _Anno, compile, _Value} = Elem) ->
-    [Elem];
+linearize({attribute, _Anno, compile, _Value} = Elem, Depth) ->
+    set_depth(Elem, Depth);
 
-linearize({attribute, _Anno1, file, {_Name, _Anno2}} = Elem) ->
-    [Elem];
+linearize({attribute, _Anno1, file, {_Name, _Anno2}} = Elem, Depth) ->
+    set_depth(Elem, Depth);
 
-linearize({attribute, Anno, define, Args}) ->
-    LinearArgs = lists:flatmap(fun linearize_expr/1, Args),
-    [{attribute, Anno, define, length(Args)}] ++ LinearArgs;
+linearize({attribute, Anno, define, Args}, Depth) ->
+    set_depth({attribute, Anno, define, length(Args)}, Depth)
+            ++ linearize_expr_list(Args, Depth + 1);
 
-linearize({attribute, Anno, record, {Name, Fields}}) ->
-    LinearFields = lists:flatmap(fun linearize/1, Fields),
-    [{attribute, Anno, record, Name, length(Fields)} | LinearFields];
+linearize({attribute, Anno, record, {Name, Fields}}, Depth) ->
+    set_depth({attribute, Anno, record, Name, length(Fields)}, Depth)
+            ++ linearize_list(Fields, Depth + 1);
 
-linearize({record_field, Anno, Name}) ->
-    [{record_field, Anno, Name}];
+linearize({record_field, Anno, Name}, Depth) ->
+    set_depth({record_field, Anno, Name}, Depth);
 
-linearize({record_field, Anno, Name, Initializer}) ->
-    LinearInit = linearize(Initializer),
-    [{record_field, Anno, Name}] ++ [{record_field_init, Anno}] ++ LinearInit;
+linearize({record_field, Anno, Name, Initializer}, Depth) ->
+    set_depth({record_field, Anno, Name}, Depth)
+            ++ set_depth({record_field_init, Anno}, Depth + 1)
+            ++ linearize(Initializer, Depth + 2);
 
-linearize({typed_record_field, Field, Type}) ->
-    LinearField = linearize(Field),
-    LinearType = linearize_type(Type),
-    LinearField ++ [{record_field_type, element(2, Field)}] ++ LinearType;
+linearize({typed_record_field, Field, Type}, Depth) ->
+    linearize(Field, Depth)
+            ++ set_depth({record_field_type, element(2, Field)}, Depth)
+            ++ linearize_type(Type, Depth);
 
-linearize({attribute, Anno, TypeAttr, {Name, Type, Vars}}) ->
-    LinearVars = lists:flatmap(fun linearize_expr/1, Vars),
-    [{attribute, Anno, TypeAttr, Name, length(Vars)}]
-            ++ LinearVars
-            ++ linearize_type(Type);
+linearize({attribute, Anno, TypeAttr, {Name, Type, Vars}}, Depth) ->
+    set_depth({attribute, Anno, TypeAttr, Name, length(Vars)}, Depth)
+            ++ linearize_expr_list(Vars, Depth)
+            ++ linearize_type(Type, Depth);
 
-linearize({attribute, Anno, SpecAttr, {{Name, Arity}, TypeList}}) ->
-    LinearTypes = lists:flatmap(fun linearize_type/1, TypeList),
-    [{attribute, Anno, SpecAttr, {Name, Arity}, length(TypeList)}]
-            ++ LinearTypes;
+linearize({attribute, Anno, SpecAttr, {{Name, Arity}, TypeList}}, Depth) ->
+    Elem = {attribute, Anno, SpecAttr, {Name, Arity}, length(TypeList)},
+    set_depth(Elem, Depth) ++ linearize_type_list(TypeList, Depth);
 
-linearize({attribute, Anno, SpecAttr, {{Mod, Name, Arity}, TypeList}}) ->
-    LinearTypes = lists:flatmap(fun linearize_type/1, TypeList),
-    [{attribute, Anno, SpecAttr, {Mod, Name, Arity}, length(TypeList)}]
-            ++ LinearTypes;
+linearize({attribute, Anno, SpecAttr, {{Mod, Name, Arity}, TypeList}}, Depth) ->
+    Elem = {attribute, Anno, SpecAttr, {Mod, Name, Arity}, length(TypeList)},
+    set_depth(Elem, Depth) ++ linearize_type_list(TypeList, Depth);
 
-linearize({attribute, _Anno, _Name, _Value} = Elem) ->
-    [Elem];
+linearize({attribute, _Anno, _Name, _Value} = Elem, Depth) ->
+    set_depth(Elem, Depth);
 
-linearize({function, Anno, Name, Arity, Clauses}) ->
-    LinearClauses = lists:flatmap(fun(C) ->
-        linearize_clause(function_clause, C)
-    end, Clauses),
-    [{function, Anno, Name, Arity, length(Clauses)}] ++ LinearClauses.
+linearize({function, Anno, Name, Arity, Clauses}, Depth) ->
+    set_depth({function, Anno, Name, Arity, length(Clauses)}, Depth)
+            ++ linearize_clause_list(function_clause, Clauses, Depth).
 
 
-linearize_type({ann_type, Anno, [AfAnno | SubTypes]}) ->
-    [{ann_type, Anno, length(SubTypes)}]
-            ++ linearize_type(AfAnno)
-            ++ lists:flatmap(fun linearize_type/1, SubTypes);
+linearize_type({ann_type, Anno, [AfAnno | SubTypes]}, Depth) ->
+    set_depth({ann_type, Anno, length(SubTypes)}, Depth)
+            ++ linearize_type(AfAnno, Depth)
+            ++ linearize_type_list(SubTypes, Depth);
 
-linearize_type({type, Anno, binary, IntParams}) ->
-    [{type, Anno, binary, length(IntParams)}]
-            ++ lists:flatmap(fun linearize_type/1, IntParams);
+linearize_type({type, Anno, binary, IntParams}, Depth) ->
+    set_depth({type, Anno, binary, length(IntParams)}, Depth)
+            ++ linearize_type_list(IntParams, Depth);
 
-linearize_type({type, Anno, nil, []}) ->
-    [{type, Anno, nil}];
+linearize_type({type, Anno, nil, []}, Depth) ->
+    set_depth({type, Anno, nil}, Depth);
 
-linearize_type({type, Anno, 'fun', []}) ->
-    [{type, Anno, 'fun'}];
+linearize_type({type, Anno, 'fun', []}, Depth) ->
+    set_depth({type, Anno, 'fun'}, Depth);
 
-linearize_type({type, Anno, 'fun', [{type, Anno, 'any'}, ReturnType]}) ->
-    [{type, Anno, 'fun'}]
-            ++ linearize_type(ReturnType);
+linearize_type({type, Anno, 'fun', [{type, Anno, 'any'}, ReturnType]}, Depth) ->
+    set_depth({type, Anno, 'fun'}, Depth)
+            ++ linearize_type(ReturnType, Depth);
 
-linearize_type({type, Anno, 'fun', FunctionType}) ->
+linearize_type({type, Anno, 'fun', FunctionType}, Depth) ->
     [{type, _, product, ArgTypes}, ReturnType] = FunctionType,
-    [{type, Anno, 'fun', length(ArgTypes)}]
-            ++ lists:flatmap(fun linearize_type/1, ArgTypes)
-            ++ linearize_type(ReturnType);
+    set_depth({type, Anno, 'fun', length(ArgTypes)}, Depth)
+            ++ linearize_type_list(ArgTypes, Depth)
+            ++ linearize_type(ReturnType, Depth);
 
-linearize_type({type, Anno, bounded_fun, [FunType, Constraints]}) ->
-    [{type, Anno, bounded_fun, length(Constraints)}]
-            ++ linearize_type(FunType)
-            ++ lists:flatmap(fun linearize_type/1, Constraints);
+linearize_type({type, Anno, bounded_fun, [FunType, Constraints]}, Depth) ->
+    set_depth({type, Anno, bounded_fun, length(Constraints)}, Depth)
+            ++ linearize_type(FunType, Depth)
+            ++ linearize_type_list(Constraints, Depth);
 
-linearize_type({type, Anno, constraint, [{_, _, is_subtype}, [Var, Type]]}) ->
-    [{type, Anno, constraint, is_subtype}]
-            ++ linearize_type(Var)
-            ++ linearize_type(Type);
+linearize_type({type, Anno, constraint, [{_, _, _}, [Var, Type]]}, Depth) ->
+    set_depth({type, Anno, constraint, is_subtype}, Depth)
+            ++ linearize_type(Var, Depth)
+            ++ linearize_type(Type, Depth);
 
-linearize_type({type, Anno, range, IntTypes}) ->
-    [{type, Anno, range, length(IntTypes)}]
-            ++ lists:flatmap(fun linearize_type/1, IntTypes);
+linearize_type({type, Anno, range, IntTypes}, Depth) ->
+    set_depth({type, Anno, range, length(IntTypes)}, Depth)
+            ++ linearize_type_list(IntTypes, Depth);
 
-linearize_type({type, Anno, map, any}) ->
-    [{type, Anno, map}];
+linearize_type({type, Anno, map, any}, Depth) ->
+    set_depth({type, Anno, map}, Depth);
 
-linearize_type({type, Anno, map, AssocTypes}) ->
-    [{type, Anno, map, length(AssocTypes)}]
-            ++ lists:flatmap(fun linearize_type/1, AssocTypes);
+linearize_type({type, Anno, map, AssocTypes}, Depth) ->
+    set_depth({type, Anno, map, length(AssocTypes)}, Depth)
+            ++ linearize_type_list(AssocTypes, Depth);
 
-linearize_type({type, Anno, map_field_assoc, SubTypes}) ->
-    [{type, Anno, map_field_assoc, length(SubTypes)}]
-            ++ lists:flatmap(fun linearize_type/1, SubTypes);
+linearize_type({type, Anno, map_field_assoc, SubTypes}, Depth) ->
+    set_depth({type, Anno, map_field_assoc, length(SubTypes)}, Depth)
+            ++ linearize_type_list(SubTypes, Depth);
 
-linearize_type({type, Anno, map_field_exact, SubTypes}) ->
-    [{type, Anno, map_field_exact, length(SubTypes)}]
-            ++ lists:flatmap(fun linearize_type/1, SubTypes);
+linearize_type({type, Anno, map_field_exact, SubTypes}, Depth) ->
+    set_depth({type, Anno, map_field_exact, length(SubTypes)}, Depth)
+            ++ linearize_type_list(SubTypes, Depth);
 
-linearize_type({type, Anno, 'record', [Name | FieldTypes]}) ->
-    [{type, Anno, 'record', Name, length(FieldTypes)}]
-            ++ linearize_type(Name)
-            ++ lists:flatmap(fun linearize_type/1, FieldTypes);
+linearize_type({type, Anno, 'record', [Name | FieldTypes]}, Depth) ->
+    set_depth({type, Anno, 'record', Name, length(FieldTypes)}, Depth)
+            ++ linearize_type(Name, Depth)
+            ++ linearize_type_list(FieldTypes, Depth + 1);
 
-linearize_type({type, Anno, field_type, [Name, Type]}) ->
-    [{type, Anno, field_type}]
-            ++ linearize_type(Name)
-            ++ linearize_type(Type);
+linearize_type({type, Anno, field_type, [Name, Type]}, Depth) ->
+    set_depth({type, Anno, field_type}, Depth)
+            ++ linearize_type(Name, Depth)
+            ++ linearize_type(Type, Depth);
 
-linearize_type({remote_type, Anno, [Mod, TypeName, ArgTypes]}) ->
-    [{remote_type, Anno, length(ArgTypes)}]
-            ++ linearize_type(Mod)
-            ++ linearize_type(TypeName)
-            ++ lists:flatmap(fun linearize_type/1, ArgTypes);
+linearize_type({remote_type, Anno, [Mod, TypeName, ArgTypes]}, Depth) ->
+    set_depth({remote_type, Anno, length(ArgTypes)}, Depth)
+            ++ linearize_type(Mod, Depth)
+            ++ linearize_type(TypeName, Depth)
+            ++ linearize_type_list(ArgTypes, Depth);
 
-linearize_type({type, Anno, tuple, any}) ->
-    [{type, Anno, tuple}];
+linearize_type({type, Anno, tuple, any}, Depth) ->
+    set_depth({type, Anno, tuple}, Depth);
 
-linearize_type({type, Anno, tuple, SubTypes}) ->
-    [{type, Anno, tupl, length(SubTypes)}]
-            ++ lists:flatmap(fun linearize_type/1, SubTypes);
+linearize_type({type, Anno, tuple, SubTypes}, Depth) ->
+    set_depth({type, Anno, tupl, length(SubTypes)}, Depth)
+            ++ linearize_type_list(SubTypes, Depth + 1);
 
-linearize_type({type, Anno, union, SubTypes}) ->
-    [{type, Anno, union, length(SubTypes)}]
-            ++ lists:flatmap(fun linearize_type/1, SubTypes);
+linearize_type({type, Anno, union, SubTypes}, Depth) ->
+    set_depth({type, Anno, union, length(SubTypes)}, Depth)
+            ++ linearize_type_list(SubTypes, Depth + 1);
 
-linearize_type({user_type, Anno, TypeName, SubTypes}) ->
+linearize_type({user_type, Anno, TypeName, SubTypes}, Depth) ->
     [{user_type, Anno, TypeName, length(SubTypes)}]
-            ++ lists:flatmap(fun linearize_type/1, SubTypes);
+            ++ linearize_type_list(SubTypes, Depth);
 
-linearize_type({type, Anno, TypeName, SubTypes}) ->
+linearize_type({type, Anno, TypeName, SubTypes}, Depth) ->
     [{type, Anno, TypeName, length(SubTypes)}]
-            ++ lists:flatmap(fun linearize_type/1, SubTypes);
+            ++ linearize_type_list(SubTypes, Depth);
 
-linearize_type(Else) ->
-    linearize_expr(Else).
+linearize_type(Else, Depth) ->
+    linearize_expr(Else, Depth).
 
 
-linearize_expr({atom, _Anno, _Atom} = Elem) ->
-    [Elem];
+linearize_expr({atom, _Anno, _Atom} = Elem, Depth) ->
+    set_depth(Elem, Depth);
 
-linearize_expr({char, _Anno, _Char} = Elem) ->
-    [Elem];
+linearize_expr({char, _Anno, _Char} = Elem, Depth) ->
+    set_depth(Elem, Depth);
 
-linearize_expr({float, _Anno, _Float} = Elem) ->
-    [Elem];
+linearize_expr({float, _Anno, _Float} = Elem, Depth) ->
+    set_depth(Elem, Depth);
 
-linearize_expr({integer, _Anno, _Int} = Elem) ->
-    [Elem];
+linearize_expr({integer, _Anno, _Int} = Elem, Depth) ->
+    set_depth(Elem, Depth);
 
-linearize_expr({string, _Anno, _String} = Elem) ->
-    [Elem];
+linearize_expr({string, _Anno, _String} = Elem, Depth) ->
+    set_depth(Elem, Depth);
 
-linearize_expr({match, Anno, Pattern, Match}) ->
-    Left = linearize_expr(Pattern),
-    Right = linearize_expr(Match),
-    Left ++ [{match, Anno}] ++ Right;
+linearize_expr({match, Anno, Pattern, Match}, Depth) ->
+    linearize_expr(Pattern, Depth)
+            ++ set_depth({match, Anno}, Depth)
+            ++ linearize_expr(Match, Depth);
 
-linearize_expr({var, _Anno, _Atom} = Elem) ->
-    [Elem];
+linearize_expr({var, _Anno, _Atom} = Elem, Depth) ->
+    set_depth(Elem, Depth);
 
-linearize_expr({macro, _Anno, _Atom} = Elem) ->
-    [Elem];
+linearize_expr({macro, _Anno, _Atom} = Elem, Depth) ->
+    set_depth(Elem, Depth);
 
-linearize_expr({tuple, Anno, Elems}) ->
-    LinearElems = lists:flatmap(fun linearize_expr/1, Elems),
-    [{tuple, Anno, length(Elems)}] ++ LinearElems;
+linearize_expr({tuple, Anno, Elems}, Depth) ->
+    set_depth({tuple, Anno, length(Elems)}, Depth)
+            ++ linearize_expr_list(Elems, Depth + 1);
 
-linearize_expr({nil, Anno}) ->
-    [{nil, Anno}];
+linearize_expr({nil, Anno}, Depth) ->
+    set_depth({nil, Anno}, Depth);
 
-linearize_expr({cons, Anno, Head, Tail}) ->
-    LinearHead = linearize_expr(Head),
-    LinearTail = linearize_expr(Tail),
-    [{cons, Anno}] ++ LinearHead ++ LinearTail;
+linearize_expr({cons, Anno, Head, Tail}, Depth) ->
+    set_depth({cons, Anno}, Depth)
+            ++ linearize_expr(Head, Depth + 1)
+            ++ linearize_expr(Tail, Depth);
 
-linearize_expr({bin, Anno, Elems}) ->
-    LinearElems = lists:flatmap(fun linearize_expr/1, Elems),
-    [{bin, Anno, length(Elems)}] ++ LinearElems;
+linearize_expr({bin, Anno, Elems}, Depth) ->
+    set_depth({bin, Anno, length(Elems)}, Depth)
+            ++ linearize_expr_list(Elems, Depth + 1);
 
-linearize_expr({bin_element, Anno, Expr, Size, TSL}) ->
-    [{bin_element, Anno}]
-            ++ linearize_expr(Expr)
-            ++ [{bin_size, Anno, Size}, {bin_tsl, Anno, TSL}];
+linearize_expr({bin_element, Anno, Expr, Size, TSL}, Depth) ->
+    set_depth({bin_element, Anno}, Depth)
+            ++ linearize_expr(Expr, Depth)
+            ++ set_depth({bin_size, Anno, Size}, Depth)
+            ++ set_depth({bin_tsl, Anno, TSL}, Depth);
 
-linearize_expr({op, Anno, Op, Left, Right}) ->
-    LinearLeft = linearize_expr(Left),
-    LinearRight = linearize_expr(Right),
-    LinearLeft ++ [{op, Anno, Op}] ++ LinearRight;
+linearize_expr({op, Anno, Op, Left, Right}, Depth) ->
+    linearize_expr(Left, Depth)
+            ++ set_depth({op, Anno, Op}, Depth)
+            ++ linearize_expr(Right, Depth);
 
-linearize_expr({op, Anno, Op, Right}) ->
-    LinearRight = linearize_expr(Right),
-    [{op, Anno, Op}] ++ LinearRight;
+linearize_expr({op, Anno, Op, Right}, Depth) ->
+    set_depth({op, Anno, Op}, Depth)
+            ++ linearize_expr(Right, Depth);
 
-linearize_expr({record, Anno, Name, Fields}) ->
-    LinearFields = lists:flatmap(fun linearize_expr/1, Fields),
-    [{record, Anno, Name, length(Fields)}] ++ LinearFields;
+linearize_expr({record, Anno, Name, Fields}, Depth) ->
+    set_depth({record, Anno, Name, length(Fields)}, Depth)
+            ++ linearize_expr_list(Fields, Depth + 1);
 
-linearize_expr({record, Anno, Expr, Name, Fields}) ->
-    LinearExpr = linearize_expr(Expr),
-    LinearFields = lists:flatmap(fun linearize_expr/1, Fields),
-    [{record_update, Anno, Name, length(Fields)}]
-            ++ LinearExpr
-            ++ LinearFields;
+linearize_expr({record, Anno, Expr, Name, Fields}, Depth) ->
+    set_depth({record_update, Anno, Name, length(Fields)}, Depth)
+            ++ linearize_expr(Expr, Depth)
+            ++ linearize_expr_list(Fields, Depth);
 
-linearize_expr({record_index, _Anno, _Name, _Field} = Elem) ->
-    [Elem];
+linearize_expr({record_index, _Anno, _Name, _Field} = Elem, Depth) ->
+    set_depth(Elem, Depth);
 
-linearize_expr({record_field, Anno, Name, Expr}) ->
-    LinearExpr = linearize_expr(Expr),
-    [{record_field, Anno, Name}] ++ LinearExpr;
+linearize_expr({record_field, Anno, Name, Expr}, Depth) ->
+    set_depth({record_field, Anno, Name}, Depth)
+            ++ linearize_expr(Expr, Depth);
 
-linearize_expr({record_field, Anno, Expr, Name, Field}) ->
-    LinearExpr = linearize_expr(Expr),
-    [{record_field, Anno, Name}] ++ LinearExpr ++ [Field];
+linearize_expr({record_field, Anno, Expr, Name, Field}, Depth) ->
+    set_depth({record_field, Anno, Name}, Depth)
+            ++ linearize_expr(Expr, Depth)
+            ++ linearize_expr(Field, Depth);
 
-linearize_expr({map, Anno, Assocs}) ->
-    LinearAssocs = lists:flatmap(fun linearize_expr/1, Assocs),
-    [{map, Anno, length(Assocs)}] ++ LinearAssocs;
+linearize_expr({map, Anno, Assocs}, Depth) ->
+    set_depth({map, Anno, length(Assocs)}, Depth)
+            ++ linearize_expr_list(Assocs, Depth + 1);
 
-linearize_expr({map, Anno, Expr, Assocs}) ->
-    LinearExpr = linearize_expr(Expr),
-    LinearAssocs = lists:map(fun linearize_expr/1, Assocs),
-    [{map_update, Anno, length(Assocs)}] ++ LinearExpr ++ LinearAssocs;
+linearize_expr({map, Anno, Expr, Assocs}, Depth) ->
+    set_depth({map_update, Anno, length(Assocs)}, Depth)
+            ++ linearize_expr(Expr, Depth)
+            ++ linearize_expr_list(Assocs, Depth + 1);
 
-linearize_expr({map_field_assoc, Anno, Key, Val}) ->
-    LinearKey = linearize_expr(Key),
-    LinearVal = linearize_expr(Val),
-    [{map_field_assoc, Anno}] ++ LinearKey ++ LinearVal;
+linearize_expr({map_field_assoc, Anno, Key, Val}, Depth) ->
+    set_depth({map_field_assoc, Anno, Key, Val}, Depth)
+            ++ linearize_expr(Key, Depth)
+            ++ linearize_expr(Val, Depth);
 
-linearize_expr({map_field_exact, Anno, Key, Val}) ->
-    LinearKey = linearize_expr(Key),
-    LinearVal = linearize_expr(Val),
-    [{map_field_exact, Anno}] ++ LinearKey ++ LinearVal;
+linearize_expr({map_field_exact, Anno, Key, Val}, Depth) ->
+    set_depth({map_field_exact, Anno}, Depth)
+            ++ linearize_expr(Key, Depth)
+            ++ linearize_expr(Val, Depth);
 
-linearize_expr({'catch', Anno, Expr}) ->
-    LinearExpr = linearize_expr(Expr),
-    [{'catch', Anno}] ++ LinearExpr;
+linearize_expr({'catch', Anno, Expr}, Depth) ->
+    set_depth({'catch', Anno}, Depth)
+            ++ linearize_expr(Expr, Depth);
 
-linearize_expr({call, Anno, {remote, Anno, Mod, Fun}, Args}) ->
-    LinearMod = linearize_expr(Mod),
-    LinearFun = linearize_expr(Fun),
-    LinearArgs = lists:flatmap(fun linearize_expr/1, Args),
-    [{call_remote, Anno, length(Args)}]
-            ++ LinearMod
-            ++ LinearFun
-            ++ LinearArgs;
+linearize_expr({call, Anno, {remote, Anno, Mod, Fun}, Args}, Depth) ->
+    set_depth({call_remote, Anno, length(Args)}, Depth)
+            ++ linearize_expr(Mod, Depth)
+            ++ linearize_expr(Fun, Depth)
+            ++ linearize_expr_list(Args, Depth);
 
-linearize_expr({call, Anno, Fun, Args}) ->
-    LinearFun = linearize_expr(Fun),
-    LinearArgs = lists:flatmap(fun linearize_expr/1, Args),
-    [{call, Anno, length(Args)}] ++ LinearFun ++ LinearArgs;
+linearize_expr({call, Anno, Fun, Args}, Depth) ->
+    set_depth({call, Anno, length(Args)}, Depth)
+            ++ linearize_expr(Fun, Depth)
+            ++ linearize_expr_list(Args, Depth);
 
-linearize_expr({lc, Anno, Template, Qualifiers}) ->
-    LinearTemplate = linearize_expr(Template),
-    LinearQualifiers = lists:flatmap(fun linearize_expr/1, Qualifiers),
-    [{lc, Anno, length(Qualifiers)}] ++ LinearTemplate ++ LinearQualifiers;
+linearize_expr({lc, Anno, Template, Qualifiers}, Depth) ->
+    set_depth({lc, Anno, length(Qualifiers)}, Depth)
+            ++ linearize_expr(Template, Depth + 1)
+            ++ linearize_expr_list(Qualifiers, Depth + 1);
 
-linearize_expr({bc, Anno, Template, Qualifiers}) ->
-    LinearTemplate = linearize_expr(Template),
-    LinearQualifiers = lists:flatmap(fun linearize_expr/1, Qualifiers),
-    [{bc, Anno, length(Qualifiers)}] ++ LinearTemplate ++ LinearQualifiers;
+linearize_expr({bc, Anno, Template, Qualifiers}, Depth) ->
+    set_depth({bc, Anno, length(Qualifiers)}, Depth)
+            ++ linearize_expr(Template, Depth + 1)
+            ++ linearize_expr_list(Qualifiers, Depth + 1);
 
-linearize_expr({generate, Anno, Pattern, Expr}) ->
-    LinearPattern = linearize_expr(Pattern),
-    LinearExpr = linearize_expr(Expr),
-    [{generate, Anno}] ++ LinearPattern ++ LinearExpr;
+linearize_expr({generate, Anno, Pattern, Expr}, Depth) ->
+    set_depth({generate, Anno}, Depth)
+            ++ linearize_expr(Pattern, Depth)
+            ++ linearize_expr(Expr, Depth);
 
-linearize_expr({b_generate, Anno, Pattern, Expr}) ->
-    LinearPattern = linearize_expr(Pattern),
-    LinearExpr = linearize_expr(Expr),
-    [{b_generate, Anno}] ++ LinearPattern ++ LinearExpr;
+linearize_expr({b_generate, Anno, Pattern, Expr}, Depth) ->
+    set_depth({b_generate, Anno}, Depth)
+            ++ linearize_expr(Pattern, Depth)
+            ++ linearize_expr(Expr, Depth);
 
-linearize_expr({block, Anno, Body}) ->
-    LinearBody = lists:flatmap(fun linearize_expr/1, Body),
-    [{block_start, Anno}] ++ LinearBody;
+linearize_expr({block, Anno, Body}, Depth) ->
+    set_depth({block_start, Anno}, Depth)
+            ++ linearize_expr_list(Body, Depth + 1);
 
-linearize_expr({'if', Anno, Clauses}) ->
-    LinearClauses = lists:flatmap(fun(C) ->
-        linearize_clause(if_clause, C)
-    end, Clauses),
-    [{'if', Anno, length(Clauses)}] ++ LinearClauses;
+linearize_expr({'if', Anno, Clauses}, Depth) ->
+    set_depth({'if', Anno, length(Clauses)}, Depth)
+            ++ linearize_clause_list(if_clause, Clauses, Depth + 1);
 
-linearize_expr({'case', Anno, Expr, Clauses}) ->
-    LinearExpr = linearize_expr(Expr),
-    LinearClauses = lists:flatmap(fun(C) ->
-        linearize_clause(case_clause, C)
-    end, Clauses),
-    [{'case', Anno, length(Clauses)}] ++ LinearExpr ++ LinearClauses;
+linearize_expr({'case', Anno, Expr, Clauses}, Depth) ->
+    set_depth({'case', Anno, length(Clauses)}, Depth)
+            ++ linearize_expr(Expr, Depth)
+            ++ linearize_clause_list(case_clause, Clauses, Depth + 1);
 
-linearize_expr({'try', Anno, Body, Cases, Catches, After}) ->
+linearize_expr({'try', Anno, Body, Cases, Catches, After}, Depth) ->
     LinearBody = if Body == [] -> []; true ->
-        lists:flatmap(fun linearize_expr/1, Body)
+        linearize_expr_list(Body, Depth)
     end,
     LinearCases = if Cases == [] -> []; true ->
-        lists:flatmap(fun(C) ->
-            linearize_clause(try_case_clause, C)
-        end, Cases)
+        linearize_clause_list(try_case_clause, Cases, Depth + 1)
     end,
     LinearCatches = if Catches == [] -> []; true ->
-        lists:flatmap(fun(C) ->
-            linearize_clause(try_catch_clause, C)
-        end, Catches)
+        linearize_clause_list(try_catch_clause, Cases, Depth + 1)
     end,
     LinearAfter = if After == [] -> []; true ->
-        lists:flatmap(fun linearize_expr/1, After)
+        linearize_expr_list(After, Depth + 1)
     end,
-    [{
+    [set_depth({
         'try',
         Anno,
         length(Body),
         length(Cases),
         length(Catches),
         length(After)
-    }]
+    }, Depth)]
             ++ LinearBody
             ++ LinearCases
             ++ LinearCatches
             ++ LinearAfter;
 
-linearize_expr({'receive', Anno, Clauses}) ->
-    LinearClauses = lists:flatmap(fun(C) ->
-        linearize_clause(receive_clause, C)
-    end, Clauses),
-    [{'receive', Anno, length(Clauses)}] ++ LinearClauses;
+linearize_expr({'receive', Anno, Clauses}, Depth) ->
+    set_depth({'receive', Anno, length(Clauses)}, Depth)
+            ++ linearize_clause_list(receive_clause, Clauses, Depth + 1);
 
-linearize_expr({'receive', Anno, Clauses, Timeout, After}) ->
-    LinearClauses = lists:flatmap(fun(C) ->
-        linearize_clause(receive_clause, C)
-    end, Clauses),
-    LinearTimeout = linearize_expr(Timeout),
-    LinearAfter = lists:flatmap(fun linearize_expr/1, After),
-    [{'receive', Anno, length(Clauses)}]
-            ++ LinearClauses
-            ++ [{'receive_timeout', Anno}]
-            ++ LinearTimeout
-            ++ [{'receive_after', Anno, length(After)}]
-            ++ LinearAfter;
+linearize_expr({'receive', Anno, Clauses, Timeout, After}, Depth) ->
+    set_depth({'receive', Anno, length(Clauses)}, Depth)
+            ++ linearize_clause_list(receive_clause, Clauses, Depth + 1)
+            ++ set_depth({'receive_timeout', Anno}, Depth)
+            ++ linearize_expr(Timeout, Depth + 1)
+            ++ set_depth({'receive_after', Anno}, Depth)
+            ++ linearize_expr_list(After, Depth + 1);
 
-linearize_expr({'fun', _Anno, {function, _Name, _Arity}} = Elem) ->
-    [Elem];
+linearize_expr({'fun', _Anno, {function, _Name, _Arity}} = Elem, Depth) ->
+    set_depth(Elem, Depth);
 
-linearize_expr({'fun', _Ann0, {function, _Mod, _Name, _Arity}} = Elem) ->
-    [Elem];
+linearize_expr({'fun', _Ann0, {function, _Mod, _Name, _Arity}} = Elem, Depth) ->
+    set_depth(Elem, Depth);
 
-linearize_expr({'fun', Anno, {clauses, Clauses}}) ->
-    LinearClauses = lists:flatmap(fun(C) ->
-        linearize_clause(fun_clause, C)
-    end, Clauses),
-    [{'fun', Anno, length(Clauses)}] ++ LinearClauses;
+linearize_expr({'fun', Anno, {clauses, Clauses}}, Depth) ->
+    set_depth({'fun', Anno, length(Clauses)}, Depth)
+            ++ linearize_clause_list(fun_clause, Clauses, Depth + 1);
 
-linearize_expr({named_fun, Anno, Name, Clauses}) ->
-    LinearClauses = lists:flatmap(fun(C) ->
-        linearize_clause(named_fun_clause, C)
-    end, Clauses),
-    [{named_fun, Anno, Name, length(Clauses)}] ++ LinearClauses.
+linearize_expr({named_fun, Anno, Name, Clauses}, Depth) ->
+    set_depth({named_fun, Anno, Name, length(Clauses)}, Depth)
+            ++ linearize_clause_list(named_fun_clause, Clauses, Depth + 1).
 
 
-linearize_clause(Type, {clause, Anno, Patterns, Guards, Body}) ->
-    LinearPatterns = lists:flatmap(fun linearize_expr/1, Patterns),
-    LinearGuards = lists:flatmap(fun linearize_guards/1, Guards),
-    LinearBody = lists:flatmap(fun linearize_expr/1, Body),
-    [{Type, Anno, length(Patterns), length(Guards)}]
-            ++ LinearPatterns
-            ++ LinearGuards
-            ++ LinearBody.
+linearize_clause(Type, {clause, Anno, Patterns, Guards, Body}, Depth) ->
+    set_depth({Type, Anno, length(Patterns), length(Guards)}, Depth)
+            ++ linearize_expr_list(Patterns, Depth)
+            ++ linearize_guards(Guards, Depth)
+            ++ linearize_expr_list(Body, Depth + 1).
 
 
-linearize_guards(Guards) ->
-    LinearGuards = lists:flatmap(fun linearize_expr/1, Guards),
-    [{guard, element(2, hd(Guards)), length(Guards)}] ++ LinearGuards.
+linearize_guard_seq(Guards, Depth) ->
+    set_depth({guard, element(2, hd(Guards))}, Depth)
+            ++ linearize_expr_list(Guards, Depth).
+
+
+linearize_list(Elems, Depth) ->
+    lists:flatmap(fun(E) -> linearize(E, Depth) end, Elems).
+
+
+linearize_type_list(Types, Depth) ->
+    lists:flatmap(fun(T) -> linearize_type(T, Depth) end, Types).
+
+
+linearize_expr_list(Exprs, Depth) ->
+    lists:flatmap(fun(E) -> linearize_expr(E, Depth) end, Exprs).
+
+
+linearize_clause_list(Type, Clauses, Depth) ->
+    lists:flatmap(fun(C) -> linearize_clause(Type, C, Depth) end, Clauses).
+
+
+linearize_guards(Guards, Depth) ->
+    lists:flatmap(fun(G) -> linearize_guard_seq(G, Depth) end, Guards).
+
+
+set_depth(Elem, Depth) ->
+    Anno = element(2, Elem),
+    NewAnno = lists:keystore(depth, 1, Anno, {depth, Depth}),
+    [setelement(2, Elem, NewAnno)].
 
 
 rewhitespace([]) ->
