@@ -24,6 +24,8 @@
     prev_token/1,
     next_token/1,
 
+    get_tree_position/1,
+
     report/4
 ]).
 
@@ -36,12 +38,12 @@
     prev_tokens,
     rest_tokens,
 
-    logical_loc
+    tree_pos
 }).
 
 
 foreach_token(UserFun, Lines) ->
-    traverse(Lines, [], wrap_user_fun(UserFun)).
+    traverse(Lines, [], emilio_tpos:new(), wrap_user_fun(UserFun)).
 
 
 foreach_line(UserFun, Lines) ->
@@ -95,33 +97,44 @@ next_token(Ctx) ->
     end.
 
 
-traverse([], _, _) ->
+get_tree_position(Ctx) ->
+    Ctx#ctx.tree_pos.
+
+
+traverse([], _, _, _) ->
     ok;
 
-traverse([Line | RestLines], PrevLines, UserFun) ->
+traverse([Line | RestLines], PrevLines, TreePos, UserFun) ->
     Ctx = #ctx{
         prev_lines = PrevLines,
         curr_line = Line,
-        rest_lines = RestLines
+        rest_lines = RestLines,
+        tree_pos = TreePos
     },
-    traverse_line(Line, [], Ctx, UserFun),
-    traverse(RestLines, [Line | PrevLines], UserFun).
+    {ok, NewTreePos} = traverse_line(Line, [], Ctx, UserFun),
+    traverse(RestLines, [Line | PrevLines], NewTreePos, UserFun).
 
 
-traverse_line([], _, _Ctx, _UserFun) ->
-    ok;
+traverse_line([], _, Ctx, _UserFun) ->
+    {ok, Ctx#ctx.tree_pos};
 
-traverse_line([Token | RestTokens], PrevTokens, Ctx, UserFun) ->
-    SubCtx = Ctx#ctx{
+traverse_line([Token | RestTokens], PrevTokens, Ctx0, UserFun) ->
+    Ctx1 = Ctx0#ctx{
         prev_tokens = PrevTokens,
         rest_tokens = RestTokens
     },
-    traverse_token(Token, SubCtx, UserFun),
-    traverse_line(RestTokens, [Token | PrevTokens], Ctx, UserFun).
+    {ok, NewTreePos} = traverse_token(Token, Ctx1, UserFun),
+    Ctx2 = Ctx1#ctx{tree_pos = NewTreePos},
+    traverse_line(RestTokens, [Token | PrevTokens], Ctx2, UserFun).
 
 
-traverse_token(Token, Ctx, UserFun) ->
-    UserFun(element(2, Token), Token, Ctx).
+traverse_token(Token, Ctx0, UserFun) ->
+    #ctx{
+        tree_pos = TreePos0
+    } = Ctx0,
+    TreePos1 = emilio_tpos:enter(Token, TreePos0),
+    UserFun(element(2, Token), Token, Ctx0#ctx{tree_pos = TreePos1}),
+    {ok, emilio_tpos:leave(Token, TreePos1)}.
 
 
 report(Module, {Line, Col}, Code, Arg) ->

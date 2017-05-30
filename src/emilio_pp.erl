@@ -88,7 +88,6 @@ parse_forms(Tokens, Acc) ->
     parse_forms(Rest, [Result | Acc]).
 
 
-
 linearize({attribute, _Anno, module, _Name} = Elem) ->
     [Elem];
 
@@ -178,7 +177,7 @@ linearize_type({type, Anno, 'fun', []}) ->
     [{type, Anno, 'fun'}];
 
 linearize_type({type, Anno, 'fun', [{type, Anno, 'any'}, ReturnType]}) ->
-    [{type, Anno, 'fun'}]
+    [{type, Anno, 'fun', return}]
             ++ linearize_type(ReturnType);
 
 linearize_type({type, Anno, 'fun', FunctionType}) ->
