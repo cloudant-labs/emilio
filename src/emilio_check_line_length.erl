@@ -81,8 +81,8 @@ check_long(MaxLength, StartCol, Text) ->
 
 line_length(Line) ->
     case lists:last(Line) of
-        {white_space, {_LineNum, Col}, WS} ->
+        {white_space, {_LineNum, Col, _Depth}, WS} ->
             Col + length(WS) - 1;
-        {dot, {_LineNum, Col}} ->
+        {dot, {_LineNum, Col, _Depth}} ->
             Col
     end.

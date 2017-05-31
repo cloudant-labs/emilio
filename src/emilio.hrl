@@ -22,3 +22,6 @@
 
 -define(EMILIO_REPORT(Loc, Code, Arg),
         emilio_lib:report(?MODULE, Loc, Code, Arg)).
+
+-define(EMILIO_REPORT(Line, Col, Code, Arg),
+        emilio_lib:report(?MODULE, Line, Col, Code, Arg)).

@@ -52,24 +52,25 @@ run(Lines) ->
 
 
 check(Loc, {white_space, _, Text}, Ctx) ->
-    check_ws(Loc, Text, $\t, 191),
+    {Line, Col, _} = Loc,
+    check_ws(Line, Col, Text, $\t, 191),
     NewText = check_line_ending(Text, Ctx),
-    check_ws(Loc, NewText, $\r, 192),
-    check_not_space(Loc, NewText);
+    check_ws(Line, Col, NewText, $\r, 192),
+    check_not_space(Line, Col, NewText);
 
 check(_Loc, _Token, _Ctx) ->
     ok.
 
 
-check_ws(_, [], _Char, _Code) ->
+check_ws(_, _, [], _Char, _Code) ->
     ok;
 
-check_ws({Line, Col} = Loc, [Char | Rest], Char, Code) ->
-    ?EMILIO_REPORT(Loc, Code, undefined),
-    check_ws({Line, Col + 1}, Rest, Char, Code);
+check_ws(Line, Col, [Char | Rest], Char, Code) ->
+    ?EMILIO_REPORT(Line, Col, Code, undefined),
+    check_ws(Line, Col + 1, Rest, Char, Code);
 
-check_ws({Line, Col}, [_ | Rest], Char, Code) ->
-    check_ws({Line, Col + 1}, Rest, Char, Code).
+check_ws(Line, Col, [_ | Rest], Char, Code) ->
+    check_ws(Line, Col + 1, Rest, Char, Code).
 
 
 check_line_ending(Text, Ctx) ->
@@ -90,14 +91,14 @@ check_line_ending(Text, Ctx) ->
     end.
 
 
-check_not_space(_Loc, []) ->
+check_not_space(_, _, []) ->
     ok;
 
-check_not_space({Line, Col} = Loc, [C | Rest]) ->
+check_not_space(Line, Col, [C | Rest]) ->
     case lists:member(C, " \r\t\n") of
         true ->
             ok;
         false ->
-            ?EMILIO_REPORT(Loc, 194, C)
+            ?EMILIO_REPORT(Line, Col, 194, C)
     end,
-    check_not_space({Line, Col + 1}, Rest).
+    check_not_space(Line, Col + 1, Rest).

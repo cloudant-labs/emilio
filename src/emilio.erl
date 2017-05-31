@@ -39,6 +39,9 @@ process_file(FileName) ->
 run_checks(FileName) ->
     io:format(standard_error, "~s~n", [FileName]),
     Tokens = emilio_pp:file(FileName),
+    lists:foreach(fun(Line) ->
+        io:format(standard_error, "~p~n~n", [Line])
+    end, Tokens),
     lists:foreach(fun(Check) ->
         Check:run(Tokens)
     end, ?EMILIO_CHECKS),

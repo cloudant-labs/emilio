@@ -24,7 +24,8 @@
     prev_token/1,
     next_token/1,
 
-    report/4
+    report/4,
+    report/5
 ]).
 
 
@@ -125,6 +126,13 @@ traverse_token(Token, Ctx, UserFun) ->
 
 
 report(Module, {Line, Col}, Code, Arg) ->
+    report(Module, Line, Col, Code, Arg);
+
+report(Module, {Line, Col, _Depth}, Code, Arg) ->
+    report(Module, Line, Col, Code, Arg).
+
+
+report(Module, Line, Col, Code, Arg) ->
     Msg = Module:format_error(Code, Arg),
     Fmt = "~b(~b) : ~b : ~s~n",
     io:format(Fmt, [Line, Col, Code, Msg]).

@@ -34,7 +34,6 @@ file(FilePath) ->
     Linearized = lists:flatmap(fun(F) -> linearize(F, 0) end, Forms),
     Rewhitespaced = rewhitespace(MacroedTokens),
     Reinserted = reinsert_tokens(Rewhitespaced, Linearized),
-    io:format(standard_error, "~5000p~n", [Reinserted]),
     DeTexted = detextify(Reinserted),
     group_lines(DeTexted).
 
@@ -154,8 +153,8 @@ linearize({attribute, Anno, SpecAttr, {{Name, Arity}, TypeList}}, Depth) ->
     Elem = {attribute, Anno, SpecAttr, {Name, Arity}, length(TypeList)},
     set_depth(Elem, Depth) ++ linearize_type_list(TypeList, Depth);
 
-linearize({attribute, Anno, SpecAttr, {{Mod, Name, Arity}, TypeList}}, Depth) ->
-    Elem = {attribute, Anno, SpecAttr, {Mod, Name, Arity}, length(TypeList)},
+linearize({attribute, Anno, SpecAttr, {{Mod, Fun, Arity}, TypeList}}, Depth) ->
+    Elem = {attribute, Anno, SpecAttr, {Mod, Fun, Arity}, length(TypeList)},
     set_depth(Elem, Depth) ++ linearize_type_list(TypeList, Depth);
 
 linearize({attribute, _Anno, _Name, _Value} = Elem, Depth) ->
@@ -181,9 +180,9 @@ linearize_type({type, Anno, nil, []}, Depth) ->
 linearize_type({type, Anno, 'fun', []}, Depth) ->
     set_depth({type, Anno, 'fun'}, Depth);
 
-linearize_type({type, Anno, 'fun', [{type, Anno, 'any'}, ReturnType]}, Depth) ->
+linearize_type({type, Anno, 'fun', [{type, Anno, 'any'}, RetType]}, Depth) ->
     set_depth({type, Anno, 'fun'}, Depth)
-            ++ linearize_type(ReturnType, Depth);
+            ++ linearize_type(RetType, Depth);
 
 linearize_type({type, Anno, 'fun', FunctionType}, Depth) ->
     [{type, _, product, ArgTypes}, ReturnType] = FunctionType,
@@ -275,9 +274,9 @@ linearize_expr({string, _Anno, _String} = Elem, Depth) ->
     set_depth(Elem, Depth);
 
 linearize_expr({match, Anno, Pattern, Match}, Depth) ->
-    linearize_expr(Pattern, Depth)
+    span(linearize_expr(Pattern, Depth)
             ++ set_depth({match, Anno}, Depth)
-            ++ linearize_expr(Match, Depth);
+            ++ linearize_expr(Match, Depth));
 
 linearize_expr({var, _Anno, _Atom} = Elem, Depth) ->
     set_depth(Elem, Depth);
@@ -286,20 +285,20 @@ linearize_expr({macro, _Anno, _Atom} = Elem, Depth) ->
     set_depth(Elem, Depth);
 
 linearize_expr({tuple, Anno, Elems}, Depth) ->
-    set_depth({tuple, Anno, length(Elems)}, Depth)
-            ++ linearize_expr_list(Elems, Depth + 1);
+    span(set_depth({tuple, Anno, length(Elems)}, Depth)
+            ++ linearize_expr_list(Elems, Depth + 1));
 
 linearize_expr({nil, Anno}, Depth) ->
     set_depth({nil, Anno}, Depth);
 
 linearize_expr({cons, Anno, Head, Tail}, Depth) ->
-    set_depth({cons, Anno}, Depth)
+    span(set_depth({cons, Anno}, Depth)
             ++ linearize_expr(Head, Depth + 1)
-            ++ linearize_expr(Tail, Depth);
+            ++ linearize_expr(Tail, Depth));
 
 linearize_expr({bin, Anno, Elems}, Depth) ->
-    set_depth({bin, Anno, length(Elems)}, Depth)
-            ++ linearize_expr_list(Elems, Depth + 1);
+    span(set_depth({bin, Anno, length(Elems)}, Depth)
+            ++ linearize_expr_list(Elems, Depth + 1));
 
 linearize_expr({bin_element, Anno, Expr, Size, TSL}, Depth) ->
     set_depth({bin_element, Anno}, Depth)
@@ -308,92 +307,92 @@ linearize_expr({bin_element, Anno, Expr, Size, TSL}, Depth) ->
             ++ set_depth({bin_tsl, Anno, TSL}, Depth);
 
 linearize_expr({op, Anno, Op, Left, Right}, Depth) ->
-    linearize_expr(Left, Depth)
+    span(linearize_expr(Left, Depth)
             ++ set_depth({op, Anno, Op}, Depth)
-            ++ linearize_expr(Right, Depth);
+            ++ linearize_expr(Right, Depth));
 
 linearize_expr({op, Anno, Op, Right}, Depth) ->
     set_depth({op, Anno, Op}, Depth)
             ++ linearize_expr(Right, Depth);
 
 linearize_expr({record, Anno, Name, Fields}, Depth) ->
-    set_depth({record, Anno, Name, length(Fields)}, Depth)
-            ++ linearize_expr_list(Fields, Depth + 1);
+    span(set_depth({record, Anno, Name, length(Fields)}, Depth)
+            ++ linearize_expr_list(Fields, Depth + 1));
 
 linearize_expr({record, Anno, Expr, Name, Fields}, Depth) ->
-    set_depth({record_update, Anno, Name, length(Fields)}, Depth)
+    span(set_depth({record_update, Anno, Name, length(Fields)}, Depth)
             ++ linearize_expr(Expr, Depth)
-            ++ linearize_expr_list(Fields, Depth);
+            ++ linearize_expr_list(Fields, Depth));
 
 linearize_expr({record_index, _Anno, _Name, _Field} = Elem, Depth) ->
     set_depth(Elem, Depth);
 
 linearize_expr({record_field, Anno, Name, Expr}, Depth) ->
-    set_depth({record_field, Anno, Name}, Depth)
-            ++ linearize_expr(Expr, Depth);
+    span(set_depth({record_field, Anno, Name}, Depth)
+            ++ linearize_expr(Expr, Depth));
 
 linearize_expr({record_field, Anno, Expr, Name, Field}, Depth) ->
-    set_depth({record_field, Anno, Name}, Depth)
+    span(set_depth({record_field, Anno, Name}, Depth)
             ++ linearize_expr(Expr, Depth)
-            ++ linearize_expr(Field, Depth);
+            ++ linearize_expr(Field, Depth));
 
 linearize_expr({map, Anno, Assocs}, Depth) ->
-    set_depth({map, Anno, length(Assocs)}, Depth)
-            ++ linearize_expr_list(Assocs, Depth + 1);
+    span(set_depth({map, Anno, length(Assocs)}, Depth)
+            ++ linearize_expr_list(Assocs, Depth + 1));
 
 linearize_expr({map, Anno, Expr, Assocs}, Depth) ->
-    set_depth({map_update, Anno, length(Assocs)}, Depth)
+    span(set_depth({map_update, Anno, length(Assocs)}, Depth)
             ++ linearize_expr(Expr, Depth)
-            ++ linearize_expr_list(Assocs, Depth + 1);
+            ++ linearize_expr_list(Assocs, Depth + 1));
 
 linearize_expr({map_field_assoc, Anno, Key, Val}, Depth) ->
-    set_depth({map_field_assoc, Anno, Key, Val}, Depth)
+    span(set_depth({map_field_assoc, Anno, Key, Val}, Depth)
             ++ linearize_expr(Key, Depth)
-            ++ linearize_expr(Val, Depth);
+            ++ linearize_expr(Val, Depth));
 
 linearize_expr({map_field_exact, Anno, Key, Val}, Depth) ->
-    set_depth({map_field_exact, Anno}, Depth)
+    span(set_depth({map_field_exact, Anno}, Depth)
             ++ linearize_expr(Key, Depth)
-            ++ linearize_expr(Val, Depth);
+            ++ linearize_expr(Val, Depth));
 
 linearize_expr({'catch', Anno, Expr}, Depth) ->
     set_depth({'catch', Anno}, Depth)
             ++ linearize_expr(Expr, Depth);
 
 linearize_expr({call, Anno, {remote, Anno, Mod, Fun}, Args}, Depth) ->
-    set_depth({call_remote, Anno, length(Args)}, Depth)
+    span(set_depth({call_remote, Anno, length(Args)}, Depth)
             ++ linearize_expr(Mod, Depth)
             ++ linearize_expr(Fun, Depth)
-            ++ linearize_expr_list(Args, Depth);
+            ++ linearize_expr_list(Args, Depth));
 
 linearize_expr({call, Anno, Fun, Args}, Depth) ->
-    set_depth({call, Anno, length(Args)}, Depth)
+    span(set_depth({call, Anno, length(Args)}, Depth)
             ++ linearize_expr(Fun, Depth)
-            ++ linearize_expr_list(Args, Depth);
+            ++ linearize_expr_list(Args, Depth));
 
 linearize_expr({lc, Anno, Template, Qualifiers}, Depth) ->
-    set_depth({lc, Anno, length(Qualifiers)}, Depth)
+    span(set_depth({lc, Anno, length(Qualifiers)}, Depth)
             ++ linearize_expr(Template, Depth + 1)
-            ++ linearize_expr_list(Qualifiers, Depth + 1);
+            ++ linearize_expr_list(Qualifiers, Depth + 1));
 
 linearize_expr({bc, Anno, Template, Qualifiers}, Depth) ->
-    set_depth({bc, Anno, length(Qualifiers)}, Depth)
+    span(set_depth({bc, Anno, length(Qualifiers)}, Depth)
             ++ linearize_expr(Template, Depth + 1)
-            ++ linearize_expr_list(Qualifiers, Depth + 1);
+            ++ linearize_expr_list(Qualifiers, Depth + 1));
 
 linearize_expr({generate, Anno, Pattern, Expr}, Depth) ->
-    set_depth({generate, Anno}, Depth)
+    span(set_depth({generate, Anno}, Depth)
             ++ linearize_expr(Pattern, Depth)
-            ++ linearize_expr(Expr, Depth);
+            ++ linearize_expr(Expr, Depth));
 
 linearize_expr({b_generate, Anno, Pattern, Expr}, Depth) ->
-    set_depth({b_generate, Anno}, Depth)
+    span(set_depth({b_generate, Anno}, Depth)
             ++ linearize_expr(Pattern, Depth)
-            ++ linearize_expr(Expr, Depth);
+            ++ linearize_expr(Expr, Depth));
 
 linearize_expr({block, Anno, Body}, Depth) ->
-    set_depth({block_start, Anno}, Depth)
-            ++ linearize_expr_list(Body, Depth + 1);
+    span(set_depth({block_start, Anno}, Depth)
+            ++ linearize_expr_list(Body, Depth + 1));
 
 linearize_expr({'if', Anno, Clauses}, Depth) ->
     set_depth({'if', Anno, length(Clauses)}, Depth)
@@ -401,7 +400,7 @@ linearize_expr({'if', Anno, Clauses}, Depth) ->
 
 linearize_expr({'case', Anno, Expr, Clauses}, Depth) ->
     set_depth({'case', Anno, length(Clauses)}, Depth)
-            ++ linearize_expr(Expr, Depth)
+            ++ span(linearize_expr(Expr, Depth))
             ++ linearize_clause_list(case_clause, Clauses, Depth + 1);
 
 linearize_expr({'try', Anno, Body, Cases, Catches, After}, Depth) ->
@@ -445,7 +444,7 @@ linearize_expr({'receive', Anno, Clauses, Timeout, After}, Depth) ->
 linearize_expr({'fun', _Anno, {function, _Name, _Arity}} = Elem, Depth) ->
     set_depth(Elem, Depth);
 
-linearize_expr({'fun', _Ann0, {function, _Mod, _Name, _Arity}} = Elem, Depth) ->
+linearize_expr({'fun', _Ann0, {function, _Mod, _Fun, _Arity}} = Elem, Depth) ->
     set_depth(Elem, Depth);
 
 linearize_expr({'fun', Anno, {clauses, Clauses}}, Depth) ->
@@ -459,14 +458,14 @@ linearize_expr({named_fun, Anno, Name, Clauses}, Depth) ->
 
 linearize_clause(Type, {clause, Anno, Patterns, Guards, Body}, Depth) ->
     set_depth({Type, Anno, length(Patterns), length(Guards)}, Depth)
-            ++ linearize_expr_list(Patterns, Depth)
-            ++ linearize_guards(Guards, Depth)
+            ++ span(span(linearize_expr_list(Patterns, Depth))
+                    ++ span(linearize_guards(Guards, Depth)))
             ++ linearize_expr_list(Body, Depth + 1).
 
 
 linearize_guard_seq(Guards, Depth) ->
-    set_depth({guard, element(2, hd(Guards))}, Depth)
-            ++ linearize_expr_list(Guards, Depth).
+    span(set_depth({guard, element(2, hd(Guards))}, Depth)
+            ++ linearize_expr_list(Guards, Depth)).
 
 
 linearize_list(Elems, Depth) ->
@@ -495,42 +494,52 @@ set_depth(Elem, Depth) ->
     [setelement(2, Elem, NewAnno)].
 
 
+span([]) ->
+    [];
+
+span([_ | _] = Tokens) ->
+    Ref = erlang:make_ref(),
+    Start = element(2, hd(Tokens)),
+    End = element(2, lists:last(Tokens)),
+    [{span_start, Start, Ref}] ++ Tokens ++ [{span_end, End, Ref}].
+
+
 rewhitespace([]) ->
     [];
 
 rewhitespace([{white_space, _Anno, Text} = Tok | RestTokens]) ->
-    Loc = get_location(Tok),
-    break_ws_token(Loc, Text) ++ rewhitespace(RestTokens);
+    {Line, Col} = get_location(Tok),
+    break_ws_token(Line, Col, Text) ++ rewhitespace(RestTokens);
 
 rewhitespace([{dot, Anno} = Tok | RestTokens]) ->
-    Loc = get_location(Tok),
+    {Line, Col} = get_location(Tok),
     {text, Text} = lists:keyfind(text, 1, Anno),
-    break_dot_token(Loc, Text) ++ rewhitespace(RestTokens);
+    break_dot_token(Line, Col, Text) ++ rewhitespace(RestTokens);
 
 rewhitespace([Token | RestTokens]) ->
     [Token] ++ rewhitespace(RestTokens).
 
 
-break_ws_token(_Loc, []) ->
+break_ws_token(_Line, _Col, []) ->
     [];
 
-break_ws_token({Line, Col}, Text) ->
+break_ws_token(Line, Col, Text) ->
+    Anno = [{line, Line}, {column, Col}],
     Pred = fun(C) -> C /= $\n end,
     {Prefix, Rest} = lists:splitwith(Pred, Text),
     case length(Rest) > 1 of
         true ->
-            Anno = [{line, Line}, {column, Col}],
             Tok = {white_space, Anno, Prefix ++ [$\n]},
-            [Tok] ++ break_ws_token({Line + 1, 1}, tl(Rest));
+            [Tok] ++ break_ws_token(Line + 1, 1, tl(Rest));
         false ->
-            [{white_space, [{line, Line}, {column, Col}], Text}]
+            [{white_space, Anno, Text}]
     end.
 
 
-break_dot_token({Line, Col}, [$.]) ->
+break_dot_token(Line, Col, [$.]) ->
     [{dot, [{line, Line}, {column, Col}]}];
 
-break_dot_token({Line, Col}, [$., C]) ->
+break_dot_token(Line, Col, [$., C]) ->
     DotTok = {dot, [{line, Line}, {column, Col}]},
     WsTok = {white_space, [{line, Line}, {column, Col + 1}], [C]},
     [DotTok, WsTok].
@@ -561,8 +570,9 @@ detextify([]) ->
     [];
 
 detextify([Token | RestTokens]) ->
-    Loc = get_location(Token),
-    NewTok = setelement(2, Token, Loc),
+    {Line, Col} = get_location(Token),
+    Depth = get_depth(Token),
+    NewTok = setelement(2, Token, {Line, Col, Depth}),
     [NewTok] ++ detextify(RestTokens).
 
 
@@ -580,8 +590,8 @@ group_lines([], Group, GroupAcc) ->
     lists:reverse(GroupAcc, [lists:reverse(Group)]);
 
 group_lines([Token | RestTokens], [G | _] = Group, GroupAcc) ->
-    {TLine, _} = element(2, Token),
-    {GLine, _} = element(2, G),
+    {TLine, _, _} = element(2, Token),
+    {GLine, _, _} = element(2, G),
     case TLine > GLine of
         true ->
             NewGroupAcc = [lists:reverse(Group) | GroupAcc],
@@ -596,3 +606,13 @@ get_location(Term) when is_tuple(Term), size(Term) >= 2 ->
     {line, Line} = lists:keyfind(line, 1, Anno),
     {column, Column} = lists:keyfind(column, 1, Anno),
     {Line, Column}.
+
+
+get_depth(Term) when is_tuple(Term), size(Term) >= 2 ->
+    Anno = element(2, Term),
+    case lists:keyfind(depth, 1, Anno) of
+        {depth, Depth} ->
+            Depth;
+        false ->
+            '_'
+    end.
