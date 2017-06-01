@@ -36,7 +36,7 @@ format_error(111, Units) ->
 
 
 run(Lines) ->
-    Units = emilio_cfg:get_int(check_indentation, units, 4),
+    Units = emilio_cfg:get_int(indentation, units, 4),
     emilio_lib:foreach_line(fun(Loc, Line) ->
         check_line(Loc, Units, Line)
     end, Lines).
