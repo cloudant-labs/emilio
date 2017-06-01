@@ -270,7 +270,7 @@ expr_max -> list_comprehension : '$1'.
 expr_max -> binary_comprehension : '$1'.
 expr_max -> tuple : '$1'.
 expr_max -> '(' expr ')' : '$2'.
-expr_max -> 'begin' exprs 'end' : {block,?anno('$1'),'$2'}.
+expr_max -> 'begin' exprs 'end' : {block,?anno_ex('$1',[{'end','$3'}]),'$2'}.
 expr_max -> if_expr : '$1'.
 expr_max -> case_expr : '$1'.
 expr_max -> receive_expr : '$1'.
@@ -382,7 +382,7 @@ record_field -> atom '=' expr : {record_field,?anno('$1'),'$1','$3'}.
 function_call -> expr_800 argument_list :
 	{call,?anno('$1'),'$1',element(1, '$2')}.
 
-if_expr -> 'if' if_clauses 'end' : {'if',?anno('$1'),'$2'}.
+if_expr -> 'if' if_clauses 'end' : {'if',?anno_ex('$1',[{'end','$3'}]),'$2'}.
 
 if_clauses -> if_clause : ['$1'].
 if_clauses -> if_clause ';' if_clauses : ['$1' | '$3'].
@@ -392,7 +392,7 @@ if_clause -> guard clause_body :
 
 
 case_expr -> 'case' expr 'of' cr_clauses 'end' :
-	{'case',?anno('$1'),'$2','$4'}.
+	{'case',?anno_ex('$1',[{'of','$3'},{'end','$5'}]),'$2','$4'}.
 
 cr_clauses -> cr_clause : ['$1'].
 cr_clauses -> cr_clause ';' cr_clauses : ['$1' | '$3'].
@@ -401,11 +401,11 @@ cr_clause -> expr clause_guard clause_body :
 	{clause,?anno('$1'),['$1'],'$2','$3'}.
 
 receive_expr -> 'receive' cr_clauses 'end' :
-	{'receive',?anno('$1'),'$2'}.
+	{'receive',?anno_ex('$1',[{'end','$3'}]),'$2'}.
 receive_expr -> 'receive' 'after' expr clause_body 'end' :
-	{'receive',?anno('$1'),[],'$3','$4'}.
+	{'receive',?anno_ex('$1',[{'after','$2'},{'end','$5'}]),[],'$3','$4'}.
 receive_expr -> 'receive' cr_clauses 'after' expr clause_body 'end' :
-	{'receive',?anno('$1'),'$2','$4','$5'}.
+	{'receive',?anno_ex('$1',[{'after','$3'},{'end','$6'}]),'$2','$4','$5'}.
 
 
 fun_expr -> 'fun' atom '/' integer :
@@ -413,7 +413,7 @@ fun_expr -> 'fun' atom '/' integer :
 fun_expr -> 'fun' atom_or_var ':' atom_or_var '/' integer_or_var :
 	{'fun',?anno('$1'),{function,'$2','$4','$6'}}.
 fun_expr -> 'fun' fun_clauses 'end' :
-	build_fun(?anno('$1'), '$2').
+	build_fun(?anno_ex('$1',[{'end','$3'}]), '$2').
 
 atom_or_var -> atom : '$1'.
 atom_or_var -> var : '$1'.
@@ -432,16 +432,16 @@ fun_clause -> var argument_list clause_guard clause_body :
 	{clause,element(2, '$1'),element(3, '$1'),element(1, '$2'),'$3','$4'}.
 
 try_expr -> 'try' exprs 'of' cr_clauses try_catch :
-	build_try(?anno('$1'),'$2','$4','$5').
+	build_try(?anno_ex('$1',[{'of','$3'}]),'$2','$4','$5').
 try_expr -> 'try' exprs try_catch :
 	build_try(?anno('$1'),'$2',[],'$3').
 
 try_catch -> 'catch' try_clauses 'end' :
-	{'$2',[]}.
+	{'$2',[], '$3'}.
 try_catch -> 'catch' try_clauses 'after' exprs 'end' :
-	{'$2','$4'}.
+	{'$2','$4', '$3', '$5'}.
 try_catch -> 'after' exprs 'end' :
-	{[],'$2'}.
+	{[],'$2', '$1', '$3'}.
 
 try_clauses -> try_clause : ['$1'].
 try_clauses -> try_clause ';' try_clauses : ['$1' | '$3'].
@@ -985,6 +985,7 @@ Erlang code.
 
 %% keep track of annotation info in tokens
 -define(anno(Tup), element(2, Tup)).
+-define(anno_ex(Tup, Extra), element(2, Tup) ++ Extra).
 
 %-define(DEBUG, true).
 
@@ -1292,8 +1293,10 @@ check_clauses(Cs, Name, Arity) ->
              ret_err(A, "head mismatch")
      end || C <- Cs].
 
-build_try(A,Es,Scs,{Ccs,As}) ->
-    {'try',A,Es,Scs,Ccs,As}.
+build_try(A,Es,Scs,{Ccs,As,End}) ->
+    {'try',A++[{'end',End}],Es,Scs,Ccs,As};
+build_try(A,Es,Scs,{Ccs,As,After,End}) ->
+    {'try',A++[{'after',After},{'end',End}],Es,Scs,Ccs,As}.
 
 -spec ret_err(_, _) -> no_return().
 ret_err(Anno, S) ->
