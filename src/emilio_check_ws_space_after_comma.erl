@@ -32,7 +32,7 @@ explain(222) ->
 
 
 format_error(222, _) ->
-    "comma missing single space or newline".
+    "comma missing a trailing single space or newline".
 
 
 run(Lines) ->
