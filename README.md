@@ -10,7 +10,6 @@ Implemented Checks
 * 112 indentation increases by more than one or two levels
 * 120 indentation does not match for tokens
 * 121 indentation does not increase for clauses
-* 122 indentation does not increase two levels after trailing operator
 
 * 201 white space contains tabs
 * 202 white space contains form feed
@@ -26,12 +25,15 @@ To Implement
 ---
 
 * 122 'when; token is indented two levels
+* 123 indentation does not increase two levels after trailing operator
+* 124 indentation does not increase two levels with prefixed operator
 * 130 exports indented correctly
 
 * 22x spaces around operators
 * 22x spaces after commas
 * 22x no spaces before commas
 * 22x no spaces before semicolons
+* 22x no spaces before dot
 * 22x no spaces after `{[(`
 * 22x no spaces before `)]}`
 
@@ -50,5 +52,8 @@ To Implement
   * 420 no private functions mixed with exported functions
   * 421 function order matches export order
 
-* 6xx logical analysis?
-  * 601 case statement with single clause?
+* 6xx
+  * 601 source file missing Apache ASLv2 license
+
+* 7xx logical analysis?
+  * 701 case statement with single clause?
