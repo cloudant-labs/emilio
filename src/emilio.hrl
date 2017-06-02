@@ -13,11 +13,12 @@
 -define(EMILIO_CHECKS, [
     emilio_check_line_length,
     emilio_check_ws_spaces_only,
+    emilio_check_ws_file_newline,
     emilio_check_indents_units,
     emilio_check_indents,
     emilio_check_indents_match,
     emilio_check_indents_clauses,
-    emilio_check_ws_file_newline
+    emilio_check_indents_when
 ]).
 
 

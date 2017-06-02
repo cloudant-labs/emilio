@@ -170,10 +170,11 @@ linearize({attribute, _Anno, _Name, _Value} = Elem) ->
     [Elem];
 
 linearize({function, Anno, Name, Arity, Clauses}) ->
+    NewAnno = Anno ++ [{ref, erlang:make_ref()}],
     LinearClauses = lists:flatmap(fun(C) ->
-        linearize_clause(function_clause, C)
+        linearize_clause(function_clause, NewAnno, C)
     end, Clauses),
-    [{function, Anno, Name, Arity, length(Clauses)}] ++ LinearClauses.
+    [{function, NewAnno, Name, Arity, length(Clauses)}] ++ LinearClauses.
 
 
 linearize_type({ann_type, Anno, [AfAnno | SubTypes]}) ->
@@ -319,11 +320,11 @@ linearize_expr({bin_element, Anno, Expr, Size, TSL}) ->
 linearize_expr({op, Anno, Op, Left, Right}) ->
     LinearLeft = linearize_expr(Left),
     LinearRight = linearize_expr(Right),
-    LinearLeft ++ [{op, Anno, Op}] ++ LinearRight;
+    LinearLeft ++ [{op2, Anno, Op}] ++ LinearRight;
 
 linearize_expr({op, Anno, Op, Right}) ->
     LinearRight = linearize_expr(Right),
-    [{op, Anno, Op}] ++ LinearRight;
+    [{op1, Anno, Op}] ++ LinearRight;
 
 linearize_expr({record, Anno, Name, Fields}) ->
     LinearFields = lists:flatmap(fun linearize_expr/1, Fields),
@@ -520,7 +521,7 @@ linearize_clause(Type, SourceAnno, {clause, Anno, Patterns, Guards, Body}) ->
 
 linearize_clause(Type, {clause, Anno, Patterns, Guards, Body}) ->
     LinearPatterns = lists:flatmap(fun linearize_expr/1, Patterns),
-    LinearGuards = lists:flatmap(fun linearize_guards/1, Guards),
+    LinearGuards = linearize_guards(Anno, Guards),
     LinearBody = lists:flatmap(fun linearize_expr/1, Body),
     [{Type, Anno, length(Patterns), length(Guards)}]
             ++ LinearPatterns
@@ -528,9 +529,25 @@ linearize_clause(Type, {clause, Anno, Patterns, Guards, Body}) ->
             ++ LinearBody.
 
 
+linearize_guards(_, []) ->
+    [];
+
+linearize_guards(Anno, [{'when', WhenAnno} | Guards]) ->
+    NewWhenAnno = emilio_anno:copy_ref(Anno, WhenAnno),
+    [{'when', NewWhenAnno}] ++ linearize_guards(Guards);
+
+% If statement guard clauses don't have a
+% 'when' token.
+linearize_guards(_Anno, Guards) ->
+    linearize_guards(Guards).
+
+
 linearize_guards(Guards) ->
-    LinearGuards = lists:flatmap(fun linearize_expr/1, Guards),
-    [{guard, element(2, hd(Guards)), length(Guards)}] ++ LinearGuards.
+    lists:flatmap(fun(GuardExprs) ->
+        LinearExprs = lists:flatmap(fun linearize_expr/1, GuardExprs),
+        [{guard, element(2, hd(GuardExprs)), length(GuardExprs)}]
+                ++ LinearExprs
+    end, Guards).
 
 
 rewhitespace([]) ->

@@ -10,6 +10,7 @@ Implemented Checks
 * 112 indentation increases by more than one or two levels
 * 120 indentation does not match for tokens
 * 121 indentation does not increase for clauses
+* 122 'when' token is not indented two levels
 
 * 201 white space contains tabs
 * 202 white space contains form feed
@@ -18,13 +19,12 @@ Implemented Checks
 
 * 210 file does not end with a single newline
 
-* 501 Line longer than 80 characters
+* 501 line longer than 80 characters
 
 
 To Implement
 ---
 
-* 122 'when; token is indented two levels
 * 123 indentation does not increase two levels after trailing operator
 * 124 indentation does not increase two levels with prefixed operator
 * 130 exports indented correctly
