@@ -19,6 +19,8 @@ Implemented Checks
 
 * 210 file does not end with a single newline
 
+* 222 spaces after commas
+
 * 501 line longer than 80 characters
 
 
@@ -30,7 +32,6 @@ To Implement
 * 130 exports indented correctly
 
 * 221 spaces around operators
-* 222 spaces after commas
 * 230 no spaces before commas
 * 231 no spaces before semicolons
 * 232 no spaces before dot
