@@ -23,12 +23,13 @@
 
 file(FilePath) ->
     {ok, Data} = file:read_file(FilePath),
-    {ok, AllTokens, _} = erl_scan:string(
+    {ok, AllTokens, _} = emilio_erl_scan:string(
             binary_to_list(Data),
             {1, 1},
             ?SCAN_OPTS
         ),
-    MacroedTokens = macroize(AllTokens),
+    Reverted = revert_annos(AllTokens),
+    MacroedTokens = macroize(Reverted),
     {CodeTokens, _NonCodeTokens} = split_code(MacroedTokens),
     Forms = parse_forms(CodeTokens, []),
     Linearized = lists:flatmap(fun linearize/1, Forms),
@@ -55,6 +56,17 @@ split_code([Token | Rest]) when element(1, Token) == white_space ->
 split_code([Token | Rest]) ->
     {Code, NonCode} = split_code(Rest),
     {[Token | Code], NonCode}.
+
+
+revert_annos([]) ->
+    [];
+
+revert_annos([Token | Rest]) ->
+    Anno = element(2, Token),
+    {value, {location, {Line, Col}}, RestAnno} =
+            lists:keytake(location, 1, Anno),
+    NewAnno = RestAnno ++ [{line, Line}, {column, Col}],
+    [setelement(2, Token, NewAnno)] ++ revert_annos(Rest).
 
 
 macroize([]) ->
@@ -86,7 +98,7 @@ parse_forms(Tokens, Acc) ->
         {ok, AbstractForm} ->
             AbstractForm;
         {error, Descriptor} ->
-            {error, emilio_erl_parse:format_error(Descriptor)}
+            {error, lists:flatten(emilio_erl_parse:format_error(Descriptor))}
     end,
     parse_forms(Rest, [Result | Acc]).
 
@@ -134,7 +146,7 @@ linearize({record_field, Anno, Name, Initializer}) ->
     [{record_field, Anno, Name}] ++ [{record_field_init, Anno}] ++ LinearInit;
 
 linearize({typed_record_field, Field, Type}) ->
-    LinearField = linearize(Field),
+    LinearField = linearize_expr(Field),
     LinearType = linearize_type(Type),
     LinearField ++ [{record_field_type, element(2, Field)}] ++ LinearType;
 

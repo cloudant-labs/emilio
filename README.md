@@ -10,13 +10,14 @@ Implemented Checks
 * 112 indentation increases by more than one or two levels
 * 120 indentation does not match for tokens
 * 121 indentation does not increase for clauses
+* 122 indentation does not increase two levels after trailing operator
 
 * 201 white space contains tabs
 * 202 white space contains form feed
 * 203 line ending has form feed
 * 204 whitespace contains invalid control or unicode code point
 
-* 210 file ends with a single newline
+* 210 file does not end with a single newline
 
 * 501 Line longer than 80 characters
 
