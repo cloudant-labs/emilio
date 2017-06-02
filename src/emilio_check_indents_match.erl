@@ -24,14 +24,14 @@
 
 
 codes() ->
-    [113].
+    [120].
 
 
-explain(113) ->
+explain(120) ->
     "Indentation for various tokens should match when split across lines".
 
 
-format_error(113, {Start, StartIndent, End, EndIndent}) ->
+format_error(120, {Start, StartIndent, End, EndIndent}) ->
     StartName = element(1, Start),
     EndName = element(1, End),
     Fmt = "mismatched indentation level ~b vs ~b for ~s/~s tokens",
@@ -84,5 +84,5 @@ check_indent_matches(Anno, MatchToken, MatchLine, Token, TokenLine) ->
     MatchLevel = emilio_lib:indent_level(MatchLine),
     TokenLevel = emilio_lib:indent_level(TokenLine),
     if MatchLevel == TokenLevel -> ok; true ->
-        ?EMILIO_REPORT(Anno, 113, {MatchToken, MatchLevel, Token, TokenLevel})
+        ?EMILIO_REPORT(Anno, 120, {MatchToken, MatchLevel, Token, TokenLevel})
     end.

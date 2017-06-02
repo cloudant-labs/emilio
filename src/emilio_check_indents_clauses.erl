@@ -24,14 +24,14 @@
 
 
 codes() ->
-    [114].
+    [121].
 
 
-explain(114) ->
+explain(121) ->
     "Indentation for clauses should increase by one level".
 
 
-format_error(114, {Token, Levels}) ->
+format_error(121, {Token, Levels}) ->
     Name = element(1, Token),
     Fmt = "indentation change for ~s clause was ~b, not 1",
     io_lib:format(Fmt, [Name, Levels]).
@@ -70,7 +70,7 @@ check_indent_increases(Anno, MatchToken, MatchLine, TokenLine) ->
     TokenLevel = emilio_lib:indent_level(TokenLine),
     Diff = TokenLevel - MatchLevel,
     if Diff == 1 -> ok; true ->
-        ?EMILIO_REPORT(Anno, 114, {MatchToken, Diff})
+        ?EMILIO_REPORT(Anno, 121, {MatchToken, Diff})
     end.
 
 
