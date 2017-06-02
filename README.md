@@ -29,13 +29,13 @@ To Implement
 * 124 indentation does not increase two levels with prefixed operator
 * 130 exports indented correctly
 
-* 22x spaces around operators
-* 22x spaces after commas
-* 22x no spaces before commas
-* 22x no spaces before semicolons
-* 22x no spaces before dot
-* 22x no spaces after `{[(`
-* 22x no spaces before `)]}`
+* 221 spaces around operators
+* 222 spaces after commas
+* 230 no spaces before commas
+* 231 no spaces before semicolons
+* 232 no spaces before dot
+* 234 no spaces after `{[(`
+* 235 no spaces before `)]}`
 
 * 3xx blank lines
   * 301 two blank lines between different attributes
