@@ -29,7 +29,7 @@ To Implement
 
 * 123 indentation does not increase two levels after trailing operator
 * 124 indentation does not increase two levels with prefixed operator
-* 130 exports indented correctly
+* 130 exports not indented correctly
 
 * 221 spaces around operators
 * 230 no spaces before commas

@@ -43,7 +43,7 @@ run(Lines) ->
 
 
 check_line(Anno, MaxLength, Line) ->
-    LineTooLong = line_length(Line) > MaxLength,
+    LineTooLong = is_long_line(MaxLength, Line),
     HasLongString = has_long_string(MaxLength, Line),
     if not LineTooLong orelse HasLongString -> ok; true ->
         ?EMILIO_REPORT(Anno, 501, MaxLength)
@@ -80,12 +80,41 @@ check_long(MaxLength, StartCol, Text) ->
     end, false, TextToks).
 
 
-line_length(Line) ->
+is_long_line(MaxLength, Line) ->
     case lists:last(Line) of
+        {string, Anno, Text} ->
+            % Multiline strings show up as the last token
+            % of the line they started on. Since we have
+            % to check manually we short circuit the general
+            % check by returning false here.
+            check_multiline_string(MaxLength, Anno, Text),
+            false;
+        {comment, Anno, Text} ->
+            {_Line, Col} = emilio_anno:lc(Anno),
+            (Col + length(Text)) > MaxLength;
         {white_space, Anno, WS} ->
             {_Line, Col} = emilio_anno:lc(Anno),
-            Col + length(WS) - 1;
+            (Col + length(WS) - 1) > MaxLength;
         {dot, Anno} ->
             {_Line, Col} = emilio_anno:lc(Anno),
-            Col
+            Col > MaxLength
     end.
+
+
+check_multiline_string(_, _, []) ->
+    ok;
+
+check_multiline_string(MaxLength, Anno, [C | Rest]) ->
+    {_, Col} = emilio_anno:lc(Anno),
+    case Col + 1 > MaxLength of
+        true ->
+            % Just report the first instance for now
+            ?EMILIO_REPORT(Anno, 501, MaxLength);
+        false when C == "\n" ->
+            NewAnno = emilio_anno:inc_line(Anno),
+            check_multiline_string(MaxLength, NewAnno, Rest);
+        false ->
+            NewAnno = emilio_anno:inc_col(Anno),
+            check_multiline_string(MaxLength, NewAnno, Rest)
+    end.
+

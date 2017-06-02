@@ -17,6 +17,7 @@
     lc/1,
     ref/1,
 
+    inc_line/1,
     inc_col/1,
     copy_ref/2
 ]).
@@ -39,6 +40,12 @@ ref(Anno) when is_list(Anno) ->
 
 ref(Tuple) when is_tuple(Tuple), size(Tuple) >= 2 ->
     ref(element(2, Tuple)).
+
+
+inc_line(Anno) when is_list(Anno) ->
+    {Line, _} = lc(Anno),
+    A0 = lists:keystore(line, 1, Anno, {line, Line + 1}),
+    lists:keystore(column, 1, A0, {column, 1}).
 
 
 inc_col(Anno) when is_list(Anno) ->

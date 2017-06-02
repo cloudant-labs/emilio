@@ -21,11 +21,44 @@
 -include("emilio.hrl").
 
 
-main([FilePath]) ->
-    emilio_path:walk(FilePath, fun process_file/1);
+-define(OPTIONS, [
+    {help, $h, "help", 'boolean', "Show this help message"}
+]).
 
-main(_) ->
-    io:format(standard_error, "usage: ~s FILE~n", [escript:script_name()]).
+
+main(Argv) ->
+    case getopt:parse(?OPTIONS, Argv) of
+        {ok, {Opts, Args}} ->
+            run(Opts, Args);
+        _ ->
+            usage(1)
+    end.
+
+
+run(Opts, Args) ->
+    case lists:keyfind(help, 1, Opts) of
+        {help, true} ->
+            usage(0);
+        _ ->
+            process(Args)
+    end.
+
+
+usage(Status) ->
+    Name = escript:script_name(),
+    Extra = "path [path ...]",
+    Help = [{"path", "Paths to process, directories searched recursively"}],
+    Out = getopt:usage(?OPTIONS, Name, Extra, Help),
+    io:format(standard_error, "~s", [Out]),
+    init:stop(Status).
+
+
+process([]) ->
+    init:stop(0);
+
+process([Path | Rest]) ->
+    emilio_path:walk(Path, fun process_file/1),
+    process(Rest).
 
 
 process_file(FileName) ->

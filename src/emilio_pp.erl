@@ -142,11 +142,11 @@ linearize({record_field, Anno, Name}) ->
     [{record_field, Anno, Name}];
 
 linearize({record_field, Anno, Name, Initializer}) ->
-    LinearInit = linearize(Initializer),
+    LinearInit = linearize_expr(Initializer),
     [{record_field, Anno, Name}] ++ [{record_field_init, Anno}] ++ LinearInit;
 
 linearize({typed_record_field, Field, Type}) ->
-    LinearField = linearize_expr(Field),
+    LinearField = linearize(Field),
     LinearType = linearize_type(Type),
     LinearField ++ [{record_field_type, element(2, Field)}] ++ LinearType;
 
