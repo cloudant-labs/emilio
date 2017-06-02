@@ -34,6 +34,9 @@ file(FilePath) ->
     Linearized = lists:flatmap(fun linearize/1, Forms),
     Rewhitespaced = rewhitespace(MacroedTokens),
     Reinserted = reinsert_tokens(Rewhitespaced, Linearized),
+    %% lists:foreach(fun(Token) ->
+    %%     io:format(standard_error, "~5000p~n", [Token])
+    %% end, Reinserted),
     DeTexted = detextify(Reinserted),
     group_lines(DeTexted).
 
@@ -86,7 +89,6 @@ parse_forms(Tokens, Acc) ->
             {error, emilio_erl_parse:format_error(Descriptor)}
     end,
     parse_forms(Rest, [Result | Acc]).
-
 
 
 linearize({attribute, _Anno, module, _Name} = Elem) ->
@@ -383,50 +385,68 @@ linearize_expr({bc, Anno, Template, Qualifiers}) ->
 linearize_expr({generate, Anno, Pattern, Expr}) ->
     LinearPattern = linearize_expr(Pattern),
     LinearExpr = linearize_expr(Expr),
-    [{generate, Anno}] ++ LinearPattern ++ LinearExpr;
+    LinearPattern ++ [{generate, Anno}] ++ LinearExpr;
 
 linearize_expr({b_generate, Anno, Pattern, Expr}) ->
     LinearPattern = linearize_expr(Pattern),
     LinearExpr = linearize_expr(Expr),
-    [{b_generate, Anno}] ++ LinearPattern ++ LinearExpr;
+    LinearPattern ++ [{b_generate, Anno}] ++ LinearExpr;
 
 linearize_expr({block, Anno, Body}) ->
+    [StartAnno, {'end', End}] = split_anno(Anno),
     LinearBody = lists:flatmap(fun linearize_expr/1, Body),
-    [{block_start, Anno}] ++ LinearBody;
+    [{block_start, StartAnno}] ++ LinearBody ++ [End];
 
 linearize_expr({'if', Anno, Clauses}) ->
+    [StartAnno, {'end', End}] = split_anno(Anno),
     LinearClauses = lists:flatmap(fun(C) ->
-        linearize_clause(if_clause, C)
+        linearize_clause(if_clause, StartAnno, C)
     end, Clauses),
-    [{'if', Anno, length(Clauses)}] ++ LinearClauses;
+    [{'if', StartAnno, length(Clauses)}] ++ LinearClauses ++ [End];
 
 linearize_expr({'case', Anno, Expr, Clauses}) ->
+    [StartAnno, {'end', End}, {'of', Of}] = split_anno(Anno),
     LinearExpr = linearize_expr(Expr),
     LinearClauses = lists:flatmap(fun(C) ->
-        linearize_clause(case_clause, C)
+        linearize_clause(case_clause, StartAnno, C)
     end, Clauses),
-    [{'case', Anno, length(Clauses)}] ++ LinearExpr ++ LinearClauses;
+    [{'case', StartAnno, length(Clauses)}]
+            ++ LinearExpr ++ [Of] ++ LinearClauses ++ [End];
 
 linearize_expr({'try', Anno, Body, Cases, Catches, After}) ->
+    [StartAnno | RestAnnos] = split_anno(Anno),
+    OfToken = case lists:keyfind('of', 1, RestAnnos) of
+        {'of', OT} -> [OT];
+        false -> []
+    end,
+    CatchToken = case lists:keyfind('catch', 1, RestAnnos) of
+        {'catch', CT} -> [CT];
+        false -> []
+    end,
+    AfterToken = case lists:keyfind('after', 1, RestAnnos) of
+        {'after', AT} -> [AT];
+        false -> []
+    end,
+    {'end', End} = lists:keyfind('end', 1, RestAnnos),
     LinearBody = if Body == [] -> []; true ->
         lists:flatmap(fun linearize_expr/1, Body)
     end,
     LinearCases = if Cases == [] -> []; true ->
-        lists:flatmap(fun(C) ->
-            linearize_clause(try_case_clause, C)
+        OfToken ++ lists:flatmap(fun(C) ->
+            linearize_clause(try_case_clause, StartAnno, C)
         end, Cases)
     end,
     LinearCatches = if Catches == [] -> []; true ->
-        lists:flatmap(fun(C) ->
-            linearize_clause(try_catch_clause, C)
+        CatchToken ++ lists:flatmap(fun(C) ->
+            linearize_clause(try_catch_clause, StartAnno, C)
         end, Catches)
     end,
     LinearAfter = if After == [] -> []; true ->
-        lists:flatmap(fun linearize_expr/1, After)
+        AfterToken ++ lists:flatmap(fun linearize_expr/1, After)
     end,
     [{
         'try',
-        Anno,
+        StartAnno,
         length(Body),
         length(Cases),
         length(Catches),
@@ -435,26 +455,30 @@ linearize_expr({'try', Anno, Body, Cases, Catches, After}) ->
             ++ LinearBody
             ++ LinearCases
             ++ LinearCatches
-            ++ LinearAfter;
+            ++ LinearAfter
+            ++ [End];
 
 linearize_expr({'receive', Anno, Clauses}) ->
+    [StartAnno, {'end', End}] = split_anno(Anno),
     LinearClauses = lists:flatmap(fun(C) ->
-        linearize_clause(receive_clause, C)
+        linearize_clause(receive_clause, StartAnno, C)
     end, Clauses),
-    [{'receive', Anno, length(Clauses)}] ++ LinearClauses;
+    [{'receive', StartAnno, length(Clauses)}] ++ LinearClauses ++ [End];
 
 linearize_expr({'receive', Anno, Clauses, Timeout, After}) ->
+    [StartAnno, {'after', AfterToken}, {'end', End}] = split_anno(Anno),
     LinearClauses = lists:flatmap(fun(C) ->
-        linearize_clause(receive_clause, C)
+        linearize_clause(receive_clause, StartAnno, C)
     end, Clauses),
     LinearTimeout = linearize_expr(Timeout),
     LinearAfter = lists:flatmap(fun linearize_expr/1, After),
-    [{'receive', Anno, length(Clauses)}]
+    [{'receive', StartAnno, length(Clauses)}]
             ++ LinearClauses
-            ++ [{'receive_timeout', Anno}]
+            ++ [AfterToken]
             ++ LinearTimeout
             ++ [{'receive_after', Anno, length(After)}]
-            ++ LinearAfter;
+            ++ LinearAfter
+            ++ [End];
 
 linearize_expr({'fun', _Anno, {function, _Name, _Arity}} = Elem) ->
     [Elem];
@@ -463,16 +487,23 @@ linearize_expr({'fun', _Ann0, {function, _Mod, _Name, _Arity}} = Elem) ->
     [Elem];
 
 linearize_expr({'fun', Anno, {clauses, Clauses}}) ->
+    [StartAnno, {'end', End}] = split_anno(Anno),
     LinearClauses = lists:flatmap(fun(C) ->
-        linearize_clause(fun_clause, C)
+        linearize_clause(fun_clause, StartAnno, C)
     end, Clauses),
-    [{'fun', Anno, length(Clauses)}] ++ LinearClauses;
+    [{'fun', StartAnno, length(Clauses)}] ++ LinearClauses ++ [End];
 
 linearize_expr({named_fun, Anno, Name, Clauses}) ->
+    [StartAnno, {'end', End}] = split_anno(Anno),
     LinearClauses = lists:flatmap(fun(C) ->
-        linearize_clause(named_fun_clause, C)
+        linearize_clause(named_fun_clause, StartAnno, C)
     end, Clauses),
-    [{named_fun, Anno, Name, length(Clauses)}] ++ LinearClauses.
+    [{named_fun, StartAnno, Name, length(Clauses)}] ++ LinearClauses ++ [End].
+
+
+linearize_clause(Type, SourceAnno, {clause, Anno, Patterns, Guards, Body}) ->
+    NewAnno = emilio_anno:copy_ref(SourceAnno, Anno),
+    linearize_clause(Type, {clause, NewAnno, Patterns, Guards, Body}).
 
 
 linearize_clause(Type, {clause, Anno, Patterns, Guards, Body}) ->
@@ -556,8 +587,9 @@ detextify([]) ->
     [];
 
 detextify([Token | RestTokens]) ->
-    Loc = get_location(Token),
-    NewTok = setelement(2, Token, Loc),
+    Anno = element(2, Token),
+    NewAnno = lists:keydelete(text, 1, Anno),
+    NewTok = setelement(2, Token, NewAnno),
     [NewTok] ++ detextify(RestTokens).
 
 
@@ -575,8 +607,8 @@ group_lines([], Group, GroupAcc) ->
     lists:reverse(GroupAcc, [lists:reverse(Group)]);
 
 group_lines([Token | RestTokens], [G | _] = Group, GroupAcc) ->
-    {TLine, _} = element(2, Token),
-    {GLine, _} = element(2, G),
+    {TLine, _} = emilio_anno:lc(Token),
+    {GLine, _} = emilio_anno:lc(G),
     case TLine > GLine of
         true ->
             NewGroupAcc = [lists:reverse(Group) | GroupAcc],
@@ -584,6 +616,25 @@ group_lines([Token | RestTokens], [G | _] = Group, GroupAcc) ->
         false ->
             group_lines(RestTokens, [Token | Group], GroupAcc)
     end.
+
+
+split_anno(Anno) ->
+    % These keys need to stay sorted so that we can
+    % reliably pattern match the response of this
+    % function.
+    Keys = ['after', 'catch', 'end', 'of'],
+    Ref = erlang:make_ref(),
+    {Tokens, BaseAnno} = lists:mapfoldl(fun(Key, AccAnno0) ->
+        case lists:keytake(Key, 1, AccAnno0) of
+            {value, {Key, Token}, AccAnno1} ->
+                TokenAnno = element(2, Token),
+                NewToken = setelement(2, Token, TokenAnno ++ [{ref, Ref}]),
+                {[{Key, NewToken}], AccAnno1};
+            false ->
+                {[], AccAnno0}
+        end
+    end, Anno, Keys),
+    [BaseAnno ++ [{ref, Ref}] | lists:flatten(Tokens)].
 
 
 get_location(Term) when is_tuple(Term), size(Term) >= 2 ->

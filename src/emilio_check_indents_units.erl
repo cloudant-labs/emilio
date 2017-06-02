@@ -10,7 +10,7 @@
 % License for the specific language governing permissions and limitations under
 % the License.
 
--module(emilio_check_indentation_units).
+-module(emilio_check_indents_units).
 
 -export([
     codes/0,
@@ -52,4 +52,3 @@ check_line(Loc, Units, [{white_space, _, Text} | _]) ->
 
 check_line(_Loc, _UNits, _Line) ->
     ok.
-

@@ -24,7 +24,15 @@
     prev_token/1,
     next_token/1,
 
-    report/4
+    find_ref_fwd/2,
+    find_ref_fwd/3,
+    find_ref_rev/2,
+    find_ref_rev/3,
+
+    report/4,
+
+    indent_level/1,
+    is_blank_line/1
 ]).
 
 
@@ -34,10 +42,19 @@
     rest_lines,
 
     prev_tokens,
-    rest_tokens,
-
-    logical_loc
+    rest_tokens
 }).
+
+
+-define(DEFAULT_REF_NODES, [
+    block_start,
+    'if',
+    'case',
+    'try',
+    'receive',
+    'fun',
+    'named_fun'
+]).
 
 
 foreach_token(UserFun, Lines) ->
@@ -46,9 +63,9 @@ foreach_token(UserFun, Lines) ->
 
 foreach_line(UserFun, Lines) ->
     Wrapped = wrap_user_fun(UserFun),
-    LineFun = fun(Loc, _Token, Ctx) ->
+    LineFun = fun(Anno, _Token, Ctx) ->
         if Ctx#ctx.prev_tokens /= [] -> ok; true ->
-            Wrapped(Loc, Ctx#ctx.curr_line, Ctx)
+            Wrapped(Anno, Ctx#ctx.curr_line, Ctx)
         end
     end,
     foreach_token(LineFun, Lines).
@@ -56,9 +73,20 @@ foreach_line(UserFun, Lines) ->
 
 prev_line(Ctx) ->
     case Ctx#ctx.prev_lines of
-        [] -> undefined;
-        [Line | _] -> Line
+        [] ->
+            undefined;
+        [Line | Rest] ->
+            NewCtx = Ctx#ctx{
+                prev_lines = Rest,
+                curr_line = Line,
+                rest_lines = [Ctx#ctx.curr_line | Ctx#ctx.rest_lines],
+
+                prev_tokens = [],
+                rest_tokens = Line
+            },
+            {ok, Line, NewCtx}
     end.
+
 
 curr_line(Ctx) ->
     Ctx#ctx.curr_line.
@@ -66,8 +94,18 @@ curr_line(Ctx) ->
 
 next_line(Ctx) ->
     case Ctx#ctx.rest_lines of
-        [] -> undefined;
-        [Line | _] -> Line
+        [] ->
+            undefined;
+        [Line | Rest] ->
+            NewCtx = Ctx#ctx{
+                prev_lines = [Ctx#ctx.curr_line | Ctx#ctx.prev_lines],
+                curr_line = Line,
+                rest_lines = Rest,
+
+                prev_tokens = [],
+                rest_tokens = Line
+            },
+            {ok, Line, NewCtx}
     end.
 
 
@@ -93,6 +131,57 @@ next_token(Ctx) ->
                 [Line | _] -> hd(Line)
             end
     end.
+
+
+find_ref_fwd(Ctx, Ref) ->
+    find_ref_fwd(Ctx, Ref, ?DEFAULT_REF_NODES).
+
+
+find_ref_fwd(Ctx, Ref, Names) when is_reference(Ref), is_list(Names) ->
+    find_ref(fun iter_fwd/3, Ctx, Ref, Names);
+
+find_ref_fwd(Ctx, Ref, Name) when is_atom(Name) ->
+    find_ref_fwd(Ctx, Ref, [Name]).
+
+
+find_ref_rev(Ctx, Ref) ->
+    find_ref_rev(Ctx, Ref, ?DEFAULT_REF_NODES).
+
+
+find_ref_rev(Ctx, Ref, Names) when is_reference(Ref), is_list(Names) ->
+    find_ref(fun iter_rev/3, Ctx, Ref, Names);
+
+find_ref_rev(Ctx, Ref, Name) when is_atom(Name) ->
+    find_ref_rev(Ctx, Ref, [Name]).
+
+
+report(Module, Anno, Code, Arg) ->
+    {Line, Col} = emilio_anno:lc(Anno),
+    Msg = Module:format_error(Code, Arg),
+    Fmt = "~b(~b) : ~b : ~s~n",
+    io:format(Fmt, [Line, Col, Code, Msg]).
+
+
+indent_level(Line) ->
+    indent_level(Line, []).
+
+
+indent_level([{white_space, _, "\n"} | _], Acc) ->
+    indent_level(eol, Acc);
+
+indent_level([{white_space, _, Text} | Rest], Acc) ->
+    indent_level(Rest, [Text | Acc]);
+
+indent_level(_, Text) ->
+    Units = emilio_cfg:get_int(indentation, units, 4),
+    Spaces = length(lists:flatten(lists:reverse(Text))),
+    Base = Spaces div Units,
+    Base + if Spaces rem Units == 0 -> 0; true -> 1 end.
+
+
+is_blank_line(Line) ->
+    FiltFun = fun(Token) -> element(1, Token) /= white_space end,
+    [] == lists:filter(FiltFun, Line).
 
 
 traverse([], _, _) ->
@@ -124,13 +213,83 @@ traverse_token(Token, Ctx, UserFun) ->
     UserFun(element(2, Token), Token, Ctx).
 
 
-report(Module, {Line, Col}, Code, Arg) ->
-    Msg = Module:format_error(Code, Arg),
-    Fmt = "~b(~b) : ~b : ~s~n",
-    io:format(Fmt, [Line, Col, Code, Msg]).
+find_ref(IterFun, Ctx, Ref, Names) ->
+    Fun = fun(Token, IterCtx, Acc) ->
+        CurrRef = emilio_anno:ref(Token),
+        Name = element(1, Token),
+        case lists:member(Name, Names) of
+            true when Ref == CurrRef ->
+                {stop, {ok, Token, IterCtx}};
+            _ ->
+                {continue, Acc}
+        end
+    end,
+    IterFun(Ctx, Fun, undefined).
+
+
+iter_fwd(#ctx{} = Ctx, Fun, Acc) ->
+    case Ctx of
+        #ctx{rest_tokens = [Token | Rest]} ->
+            CurrCtx = Ctx#ctx{
+                rest_tokens = Rest
+            },
+            case Fun(Token, CurrCtx, Acc) of
+                {stop, NewAcc} ->
+                    NewAcc;
+                {continue, NewAcc} ->
+                    NextCtx = Ctx#ctx{
+                        prev_tokens = [Token | Ctx#ctx.prev_tokens],
+                        rest_tokens = Rest
+                    },
+                    iter_fwd(NextCtx, Fun, NewAcc)
+            end;
+        #ctx{rest_tokens = [], rest_lines = [Line | Rest]} ->
+            NextCtx = Ctx#ctx{
+                prev_lines = [Ctx#ctx.curr_line | Ctx#ctx.prev_lines],
+                curr_line = Line,
+                rest_lines = Rest,
+
+                prev_tokens = [],
+                rest_tokens = Line
+            },
+            iter_fwd(NextCtx, Fun, Acc);
+        #ctx{rest_tokens = [], rest_lines = []} ->
+            Acc
+    end.
+
+
+iter_rev(Ctx, Fun, Acc) ->
+    case Ctx of
+        #ctx{prev_tokens = [Token | Rest]} ->
+            CurrCtx = Ctx#ctx{
+                prev_tokens = Rest
+            },
+            case Fun(Token, CurrCtx, Acc) of
+                {stop, NewAcc} ->
+                    NewAcc;
+                {continue, NewAcc} ->
+                    NextCtx = Ctx#ctx{
+                        prev_tokens = Rest,
+                        rest_tokens = [Token | Ctx#ctx.rest_tokens]
+                    },
+                    iter_rev(NextCtx, Fun, NewAcc)
+            end;
+        #ctx{prev_tokens = [], prev_lines = [Line | Rest]} ->
+            NextCtx = Ctx#ctx{
+                prev_lines = Rest,
+                curr_line = Line,
+                rest_lines = [Ctx#ctx.curr_line | Ctx#ctx.rest_lines],
+
+                prev_tokens = lists:reverse(Line),
+                rest_tokens = []
+            },
+            iter_rev(NextCtx, Fun, Acc);
+        #ctx{prev_tokens = [], prev_lines = []} ->
+            Acc
+    end.
 
 
 wrap_user_fun(UserFun) when is_function(UserFun, 2) ->
-    fun(Loc, Item, _) -> UserFun(Loc, Item) end;
+    fun(Anno, Item, _) -> UserFun(Anno, Item) end;
 wrap_user_fun(UserFun) when is_function(UserFun, 3) ->
     UserFun.

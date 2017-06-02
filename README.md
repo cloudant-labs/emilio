@@ -7,11 +7,14 @@ Checks
 ---
 
 * 111 indendation is not a multiple of four
+* 112 indentation increases by more than four or eight
+* 113 indentation does not match for tokens
+* 114 indentation does not increase for clauses
 
-* 191 white space contains tabs
-* 192 white space contains form feed
-* 193 line ending has form feed
-* 194 whitespace contains invalid control or unicode code point
+* 201 white space contains tabs
+* 202 white space contains form feed
+* 203 line ending has form feed
+* 204 whitespace contains invalid control or unicode code point
 
 * 501 Line longer than 80 characters
 
@@ -30,7 +33,10 @@ W warnings
 
 
 
-E112 expected an indented block
+
+
+
+
 E113 unexpected indentation
 E114 (comment) indentation is not a multiple of four
 E115 (comment) expected an indented block

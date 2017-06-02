@@ -12,14 +12,17 @@
 
 -define(EMILIO_CHECKS, [
     emilio_check_line_length,
-    emilio_check_spaces_only,
-    emilio_check_indentation_units,
-    emilio_check_indents
+    emilio_check_ws_spaces_only,
+    emilio_check_indents_units,
+    emilio_check_indents,
+    emilio_check_indents_match,
+    emilio_check_indents_clauses,
+    emilio_check_ws_file_newline
 ]).
 
 
--define(EMILIO_REPORT(Loc, Code),
-        emilio_lib:report(?MODULE, Loc, Code, undefined)).
+-define(EMILIO_REPORT(Anno, Code),
+        emilio_lib:report(?MODULE, Anno, Code, undefined)).
 
--define(EMILIO_REPORT(Loc, Code, Arg),
-        emilio_lib:report(?MODULE, Loc, Code, Arg)).
+-define(EMILIO_REPORT(Anno, Code, Arg),
+        emilio_lib:report(?MODULE, Anno, Code, Arg)).

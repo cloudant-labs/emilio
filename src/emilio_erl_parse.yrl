@@ -437,11 +437,11 @@ try_expr -> 'try' exprs try_catch :
 	build_try(?anno('$1'),'$2',[],'$3').
 
 try_catch -> 'catch' try_clauses 'end' :
-	{'$2',[], '$3'}.
+	{'$2',[], '$1', undefined, '$3'}.
 try_catch -> 'catch' try_clauses 'after' exprs 'end' :
-	{'$2','$4', '$3', '$5'}.
+	{'$2','$4', '$1', '$3', '$5'}.
 try_catch -> 'after' exprs 'end' :
-	{[],'$2', '$1', '$3'}.
+	{[],'$2', undefined, '$1', '$3'}.
 
 try_clauses -> try_clause : ['$1'].
 try_clauses -> try_clause ';' try_clauses : ['$1' | '$3'].
@@ -1293,10 +1293,21 @@ check_clauses(Cs, Name, Arity) ->
              ret_err(A, "head mismatch")
      end || C <- Cs].
 
-build_try(A,Es,Scs,{Ccs,As,End}) ->
-    {'try',A++[{'end',End}],Es,Scs,Ccs,As};
-build_try(A,Es,Scs,{Ccs,As,After,End}) ->
-    {'try',A++[{'after',After},{'end',End}],Es,Scs,Ccs,As}.
+build_try(A,Es,Scs,{Ccs,As,Catch,After,End}) ->
+    CatchEntry = case Catch of
+        undefined -> [];
+        CT -> [{'catch', CT}]
+    end,
+    AfterEntry = case After of
+        undefined -> [];
+        AT -> [{'after', AT}]
+    end,
+    EndEntry = case End of
+        undefined -> [];
+        ET -> [{'end', ET}]
+    end,
+    Extra = CatchEntry ++ AfterEntry ++ EndEntry,
+    {'try',A++Extra,Es,Scs,Ccs,As}.
 
 -spec ret_err(_, _) -> no_return().
 ret_err(Anno, S) ->

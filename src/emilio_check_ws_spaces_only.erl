@@ -10,7 +10,7 @@
 % License for the specific language governing permissions and limitations under
 % the License.
 
--module(emilio_check_spaces_only).
+-module(emilio_check_ws_spaces_only).
 
 -export([
     codes/0,
@@ -24,26 +24,26 @@
 
 
 codes() ->
-    [191, 192, 193, 194].
+    [201, 202, 203, 204].
 
 
-explain(191) ->
+explain(201) ->
     "Tabs are bad, mmmkay!";
-explain(192) ->
+explain(202) ->
     "Form feeds are bad, mmmkay!";
-explain(193) ->
+explain(203) ->
     "Just Say No to Windows Line Endings.";
-explain(194) ->
+explain(204) ->
     "Don't use weird control or unicode code points in white space".
 
 
-format_error(191, _) ->
+format_error(201, _) ->
     "white space contains tabs";
-format_error(192, _) ->
+format_error(202, _) ->
     "white space contains form feeds";
-format_error(193, _) ->
+format_error(203, _) ->
     "line ending has form feed";
-format_error(194, Code) ->
+format_error(204, Code) ->
     io_lib:format("line contains invalid control code: ~b", [Code]).
 
 
@@ -51,36 +51,36 @@ run(Lines) ->
     emilio_lib:foreach_token(fun check/3, Lines).
 
 
-check(Loc, {white_space, _, Text}, Ctx) ->
-    check_ws(Loc, Text, $\t, 191),
+check(Anno, {white_space, _, Text}, Ctx) ->
+    check_ws(Anno, Text, $\t, 201),
     NewText = check_line_ending(Text, Ctx),
-    check_ws(Loc, NewText, $\r, 192),
-    check_not_space(Loc, NewText);
+    check_ws(Anno, NewText, $\r, 202),
+    check_not_space(Anno, NewText);
 
-check(_Loc, _Token, _Ctx) ->
+check(_Anno, _Token, _Ctx) ->
     ok.
 
 
 check_ws(_, [], _Char, _Code) ->
     ok;
 
-check_ws({Line, Col} = Loc, [Char | Rest], Char, Code) ->
-    ?EMILIO_REPORT(Loc, Code, undefined),
-    check_ws({Line, Col + 1}, Rest, Char, Code);
+check_ws(Anno, [Char | Rest], Char, Code) ->
+    ?EMILIO_REPORT(Anno, Code, undefined),
+    check_ws(emilio_anno:inc_col(Anno), Rest, Char, Code);
 
-check_ws({Line, Col}, [_ | Rest], Char, Code) ->
-    check_ws({Line, Col + 1}, Rest, Char, Code).
+check_ws(Anno, [_ | Rest], Char, Code) ->
+    check_ws(emilio_anno:inc_col(Anno), Rest, Char, Code).
 
 
 check_line_ending(Text, Ctx) ->
     % Return a modified Text here removing
     % the trailing \r so that its not
-    % reported as a 192 for line endings.
+    % reported as a 202 for line endings.
     case emilio_lib:next_token(Ctx) of
         {white_space, Anno, [$\n]} ->
             case lists:last(Text) == $\r of
                 true ->
-                    ?EMILIO_REPORT(Anno, 193),
+                    ?EMILIO_REPORT(Anno, 203),
                     lists:sublist(Text, length(Text) - 1);
                 false ->
                     Text
@@ -90,14 +90,14 @@ check_line_ending(Text, Ctx) ->
     end.
 
 
-check_not_space(_Loc, []) ->
+check_not_space(_Anno, []) ->
     ok;
 
-check_not_space({Line, Col} = Loc, [C | Rest]) ->
+check_not_space(Anno, [C | Rest]) ->
     case lists:member(C, " \r\t\n") of
         true ->
             ok;
         false ->
-            ?EMILIO_REPORT(Loc, 194, C)
+            ?EMILIO_REPORT(Anno, 204, C)
     end,
-    check_not_space({Line, Col + 1}, Rest).
+    check_not_space(emilio_anno:inc_col(Anno), Rest).

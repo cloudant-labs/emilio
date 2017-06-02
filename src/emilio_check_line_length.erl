@@ -37,16 +37,16 @@ format_error(501, MaxLength) ->
 
 run(Lines) ->
     MaxLength = emilio_cfg:get_int(line_length, max, 80),
-    emilio_lib:foreach_line(fun(Loc, Line) ->
-        check_line(Loc, MaxLength, Line)
+    emilio_lib:foreach_line(fun(Anno, Line) ->
+        check_line(Anno, MaxLength, Line)
     end, Lines).
 
 
-check_line(Loc, MaxLength, Line) ->
+check_line(Anno, MaxLength, Line) ->
     LineTooLong = line_length(Line) > MaxLength,
     HasLongString = has_long_string(MaxLength, Line),
     if not LineTooLong orelse HasLongString -> ok; true ->
-        ?EMILIO_REPORT(Loc, 501, MaxLength)
+        ?EMILIO_REPORT(Anno, 501, MaxLength)
     end.
 
 
@@ -57,10 +57,11 @@ has_long_string(MaxLength, Line) ->
     StartLen = max(0, MaxLength - round(MaxLength * 0.1)),
     lists:foldl(fun(Tok, HasLong) ->
         case Tok of
-            {string, {_L, C}, Text} when C < StartLen ->
-                HasLong orelse check_long(MaxLength, C, Text);
-            {comment, {_L, C}, Text} when C < StartLen ->
-                HasLong orelse check_long(MaxLength, C, Text);
+            {Name, Anno, Text} when Name == string; Name == comment ->
+                {_Line, Col} = emilio_anno:lc(Anno),
+                if Col >= StartLen -> HasLong; true ->
+                    HasLong orelse check_long(MaxLength, Col, Text)
+                end;
             _ ->
                 HasLong
         end
@@ -81,8 +82,10 @@ check_long(MaxLength, StartCol, Text) ->
 
 line_length(Line) ->
     case lists:last(Line) of
-        {white_space, {_LineNum, Col}, WS} ->
+        {white_space, Anno, WS} ->
+            {_Line, Col} = emilio_anno:lc(Anno),
             Col + length(WS) - 1;
-        {dot, {_LineNum, Col}} ->
+        {dot, Anno} ->
+            {_Line, Col} = emilio_anno:lc(Anno),
             Col
     end.
