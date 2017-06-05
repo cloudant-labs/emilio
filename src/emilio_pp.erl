@@ -313,9 +313,11 @@ linearize_expr({bin, Anno, Elems}) ->
     [{bin, Anno, length(Elems)}] ++ LinearElems;
 
 linearize_expr({bin_element, Anno, Expr, Size, TSL}) ->
+    Linearized = linearize_expr(Expr),
+    EndAnno = element(2, lists:last(Linearized)),
     [{bin_element, Anno}]
-            ++ linearize_expr(Expr)
-            ++ [{bin_size, Anno, Size}, {bin_tsl, Anno, TSL}];
+            ++ Linearized
+            ++ [{bin_size, EndAnno, Size}, {bin_tsl, EndAnno, TSL}];
 
 linearize_expr({op, Anno, Op, Left, Right}) ->
     LinearLeft = linearize_expr(Left),
@@ -489,7 +491,6 @@ linearize_expr({'receive', Anno, Clauses, Timeout, After}) ->
             ++ LinearClauses
             ++ [AfterToken]
             ++ LinearTimeout
-            ++ [{'receive_after', Anno, length(After)}]
             ++ LinearAfter
             ++ [End];
 
