@@ -28,6 +28,7 @@
     case_clause,
     try_case_clause,
     try_catch_clause,
+    receive_clause,
     fun_clause,
     named_fun_clause
 ]).
