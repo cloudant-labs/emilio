@@ -35,6 +35,9 @@ format_error(210, Count) ->
     io_lib:format("file ends with ~b new lines, not 1", [Count]).
 
 
+run([]) ->
+    ok;
+
 run(Lines) ->
     RevTokens = lists:reverse(lists:flatten(Lines)),
     Anno = element(2, hd(RevTokens)),
