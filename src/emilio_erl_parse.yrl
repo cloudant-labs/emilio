@@ -418,6 +418,7 @@ fun_expr -> 'fun' fun_clauses 'end' :
 
 atom_or_var -> atom : '$1'.
 atom_or_var -> var : '$1'.
+atom_or_var -> macro : '$1'.
 
 integer_or_var -> integer : '$1'.
 integer_or_var -> var : '$1'.
