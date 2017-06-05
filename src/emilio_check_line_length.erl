@@ -98,6 +98,9 @@ is_long_line(MaxLength, Line) ->
         {comment, Anno, Text} ->
             {_Line, Col} = emilio_anno:lc(Anno),
             (Col + length(Text)) > MaxLength;
+        {char, Anno, _} ->
+            {_Line, Col} = emilio_anno:lc(Anno),
+            Col > MaxLength;
         {white_space, Anno, WS} ->
             {_Line, Col} = emilio_anno:lc(Anno),
             (Col + length(WS) - 1) > MaxLength;
