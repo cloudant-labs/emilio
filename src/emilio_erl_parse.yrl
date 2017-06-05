@@ -186,12 +186,12 @@ field_type -> atom '::' top_type          : {type, ?anno('$1'), field_type,
                                              ['$1', '$3']}.
 
 binary_type -> '<<' '>>'                  : {type, ?anno('$1'),binary,
-					     [abstract2(0, ?anno('$1')),
-					      abstract2(0, ?anno('$1'))]}.
+					     [{integer, ?anno('$1'), 0},
+                          {integer, ?anno('$1'), 0}]}.
 binary_type -> '<<' bin_base_type '>>'    : {type, ?anno('$1'),binary,
-					     ['$2', abstract2(0, ?anno('$1'))]}.
+					     ['$2', {integer, ?anno('$1'), 0}]}.
 binary_type -> '<<' bin_unit_type '>>'    : {type, ?anno('$1'),binary,
-                                             [abstract2(0, ?anno('$1')), '$2']}.
+                                             [{integer, ?anno('$1'), 0}, '$2']}.
 binary_type -> '<<' bin_base_type ',' bin_unit_type '>>'
                                     : {type, ?anno('$1'), binary, ['$2', '$4']}.
 
@@ -1146,10 +1146,6 @@ type_tag(TypeName, NumberOfTypeVariables) ->
         true -> type;
         false -> user_type
     end.
-
-abstract2(Term, Anno) ->
-    Line = emilio_erl_anno:line(Anno),
-    abstract(Term, Line).
 
 %% build_attribute(AttrName, AttrValue) ->
 %%	{attribute,Anno,module,Module}
