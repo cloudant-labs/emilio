@@ -89,6 +89,12 @@ is_long_line(MaxLength, Line) ->
             % check by returning false here.
             check_multiline_string(MaxLength, Anno, Text),
             false;
+        {bin_tsl, _, _} ->
+            % Similar to multiline strings, we're looking
+            % for a multiline bin element initializer so
+            % will report the error on our own
+            check_bin_expr(MaxLength, Line),
+            false;
         {comment, Anno, Text} ->
             {_Line, Col} = emilio_anno:lc(Anno),
             (Col + length(Text)) > MaxLength;
@@ -110,7 +116,7 @@ check_multiline_string(MaxLength, Anno, [C | Rest]) ->
         true ->
             % Just report the first instance for now
             ?EMILIO_REPORT(Anno, 501, MaxLength);
-        false when C == "\n" ->
+        false when C == $\n ->
             NewAnno = emilio_anno:inc_line(Anno),
             check_multiline_string(MaxLength, NewAnno, Rest);
         false ->
@@ -118,3 +124,27 @@ check_multiline_string(MaxLength, Anno, [C | Rest]) ->
             check_multiline_string(MaxLength, NewAnno, Rest)
     end.
 
+
+check_bin_expr(MaxLength, Line) ->
+    CheckToken = fun(Tok) ->
+        Anno = element(2, Tok),
+        {_, Col} = emilio_anno:lc(Anno),
+        if Col =< MaxLength -> ok; true ->
+            ?EMILIO_REPORT(Anno, 501, MaxLength)
+        end
+    end,
+    RevLine = lists:reverse(Line),
+    case RevLine of
+        [{bin_tsl, _, _}, {bin_size, _, _} | Rest] ->
+            % Getting the expression of the element
+            Pred = fun(T) -> element(1, T) /= bin_element end,
+            Prefix = lists:takewhile(Pred, Rest),
+            case Prefix of
+                [{string, StrAnno, Text}] ->
+                    check_multiline_string(MaxLength, StrAnno, Text);
+                [Tok | _] ->
+                    CheckToken(Tok)
+            end;
+        [{bin_tsl, _, _} = T | _] ->
+            CheckToken(T)
+    end.
