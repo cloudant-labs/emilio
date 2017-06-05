@@ -14,8 +14,12 @@
 
 
 -export([
-    file/1
+    file/1,
+    format_error/2
 ]).
+
+
+-include("emilio.hrl").
 
 
 -define(SCAN_OPTS, [text, return]).
@@ -40,6 +44,10 @@ file(FilePath) ->
     %% end, Reinserted),
     DeTexted = detextify(Reinserted),
     group_lines(DeTexted).
+
+
+format_error(901, Arg) ->
+    io_lib:format("Unable to parse form: ~s", [Arg]).
 
 
 split_code([]) ->
@@ -102,13 +110,14 @@ parse_forms(Tokens, Acc) ->
     IsNotDot = fun(Token) -> element(1, Token) /= dot end,
     {Form, [Dot | Rest]} = lists:splitwith(IsNotDot, Tokens),
     FormTokens = macroize(Form ++ [Dot]),
-    Result = case emilio_erl_parse:parse_form(FormTokens) of
+    case emilio_erl_parse:parse_form(FormTokens) of
         {ok, AbstractForm} ->
-            AbstractForm;
-        {error, Descriptor} ->
-            {error, lists:flatten(emilio_erl_parse:format_error(Descriptor))}
-    end,
-    parse_forms(Rest, [Result | Acc]).
+            parse_forms(Rest, [AbstractForm | Acc]);
+        {error, {{Line, Col}, emilio_erl_parse, Message}} ->
+            Anno = [{line, Line}, {column, Col}],
+            ?EMILIO_REPORT(Anno, 901, Message),
+            parse_forms(Rest, Acc)
+    end.
 
 
 linearize({attribute, _Anno, module, _Name} = Elem) ->

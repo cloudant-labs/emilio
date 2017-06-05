@@ -23,6 +23,7 @@ Implemented Checks
 
 * 501 line longer than 80 characters
 
+* 901 Unparseable form
 
 To Implement
 ---
@@ -58,3 +59,13 @@ To Implement
 
 * 7xx logical analysis?
   * 701 case statement with single clause?
+
+
+Notes
+---
+
+* 901 - Emilio uses a custom parser so that it doesn't have to expand
+        macros. This means that there are cases when a macro that rewrites
+        source forms in a way that emilio is unable to parse the unexpanded
+        source code. For now this is acceptable as it doesn't happen
+        that often but it may be something to figure out later.
