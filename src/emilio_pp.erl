@@ -190,13 +190,15 @@ linearize({typed_record_field, Field, Type}) ->
     LinearType = linearize_type(Type),
     LinearField ++ [{record_field_type, element(2, Field)}] ++ LinearType;
 
-linearize({attribute, Anno, TypeAttr, {Name, Type, Vars}}) ->
+linearize({attribute, Anno, TypeAttr, {Name, Type, Vars}})
+        when TypeAttr == 'type'; TypeAttr == 'opaque' ->
     LinearVars = lists:flatmap(fun linearize_expr/1, Vars),
     [{attribute, Anno, TypeAttr, Name, length(Vars)}]
             ++ LinearVars
             ++ linearize_type(Type);
 
-linearize({attribute, Anno, SpecAttr, {{Name, Arity}, TypeList}}) ->
+linearize({attribute, Anno, SpecAttr, {{Name, Arity}, TypeList}})
+        when SpecAttr == 'spec'; SpecAttr == 'callback' ->
     LinearTypes = lists:flatmap(fun linearize_type/1, TypeList),
     [{attribute, Anno, SpecAttr, {Name, Arity}, length(TypeList)}]
             ++ LinearTypes;
