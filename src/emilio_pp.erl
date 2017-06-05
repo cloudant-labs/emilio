@@ -72,13 +72,21 @@ revert_annos([Token | Rest]) ->
 macroize([]) ->
     [];
 
-macroize([{'?', Anno1}, {atom, _, Name} | Rest]) ->
+macroize([{'?', Anno}, {atom, _, Name} | Rest]) ->
     NewText = [$? | atom_to_list(Name)],
-    NewToken = {macro, Anno1, list_to_atom(NewText)},
+    NewToken = {macro, Anno, list_to_atom(NewText)},
     [NewToken | macroize(Rest)];
 
 macroize([{'?', _} = T1, {var, Anno, Name} | Rest]) ->
     macroize([T1, {atom, Anno, Name} | Rest]);
+
+macroize([{'?', Anno}, {'?', _}, {atom, _, Name} | Rest]) ->
+    NewText = [$?, $? | atom_to_list(Name)],
+    NewToken = {macro, Anno, list_to_atom(NewText)},
+    [NewToken | macroize(Rest)];
+
+macroize([{'?', _} = T1, {'?', _} = T2, {var, Anno, Name} | Rest]) ->
+    macroize([T1, T2, {atom, Anno, Name} | Rest]);
 
 macroize([Token | Rest]) ->
     [Token | macroize(Rest)].
