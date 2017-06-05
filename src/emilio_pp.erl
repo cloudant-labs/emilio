@@ -107,16 +107,39 @@ parse_forms([{eof, _}], Acc) ->
     lists:reverse(Acc);
 
 parse_forms(Tokens, Acc) ->
+    case take_form(Tokens) of
+        {no_form, Discard} ->
+            Anno = element(2, Discard),
+            ?EMILIO_REPORT(Anno, 901, "Invalid form at end of file"),
+            lists:reverse([Discard | Acc]);
+        {Form, Rest} ->
+            case emilio_erl_parse:parse_form(Form) of
+                {ok, AbstractForm} ->
+                    parse_forms(Rest, [AbstractForm | Acc]);
+                {error, {Loc, emilio_erl_parse, Message}} ->
+                    Anno = case Loc of
+                        {Line, Col} ->
+                            [{line, Line}, {column, Col}];
+                        _ ->
+                            [{line, 0}, {column, 0}]
+                    end,
+                    ?EMILIO_REPORT(Anno, 901, Message),
+                    Start = element(2, hd(Form)),
+                    End = element(2, lists:last(Form)),
+                    parse_forms(Rest, [{discard, Start, End} | Acc])
+            end
+    end.
+
+
+take_form(Tokens) ->
     IsNotDot = fun(Token) -> element(1, Token) /= dot end,
-    {Form, [Dot | Rest]} = lists:splitwith(IsNotDot, Tokens),
-    FormTokens = macroize(Form ++ [Dot]),
-    case emilio_erl_parse:parse_form(FormTokens) of
-        {ok, AbstractForm} ->
-            parse_forms(Rest, [AbstractForm | Acc]);
-        {error, {{Line, Col}, emilio_erl_parse, Message}} ->
-            Anno = [{line, Line}, {column, Col}],
-            ?EMILIO_REPORT(Anno, 901, Message),
-            parse_forms(Rest, Acc)
+    case lists:splitwith(IsNotDot, Tokens) of
+        {Form, [Dot | Rest]} ->
+            {Form ++ [Dot], Rest};
+        {_, []} ->
+            Start = element(2, hd(Tokens)),
+            End = element(2, lists:last(Tokens)),
+            {no_form, {discard, Start, End}}
     end.
 
 
@@ -191,7 +214,10 @@ linearize({function, Anno, Name, Arity, Clauses}) ->
     LinearClauses = lists:flatmap(fun(C) ->
         linearize_clause(function_clause, NewAnno, C)
     end, Clauses),
-    [{function, NewAnno, Name, Arity, length(Clauses)}] ++ LinearClauses.
+    [{function, NewAnno, Name, Arity, length(Clauses)}] ++ LinearClauses;
+
+linearize({discard, _, _} = Elem) ->
+    [Elem].
 
 
 linearize_type({ann_type, Anno, [AfAnno | SubTypes]}) ->
@@ -618,16 +644,49 @@ reinsert_tokens(Tokens, []) ->
 reinsert_tokens([Token | RestTokens] = Tokens, [Node | RestNodes] = Nodes) ->
     TokLoc = get_location(Token),
     NodeLoc = get_location(Node),
+    IsDiscardNode = element(1, Node) == discard,
     case {TokLoc, NodeLoc} of
         _ when TokLoc < NodeLoc ->
             Rest = reinsert_tokens(RestTokens, Nodes),
             [Token | Rest];
+        _ when TokLoc >= NodeLoc andalso IsDiscardNode ->
+            % A discard node comes from when we failed to
+            % parse a form. This logic makes sure that we
+            % remove all tokens from the form so that we
+            % don't attempt to process raw tokens from
+            % erl_scan.
+            NewTokens = discard_tokens(Tokens, element(3, Node)),
+            reinsert_tokens(NewTokens, RestNodes);
         _ when TokLoc > NodeLoc ->
             Rest = reinsert_tokens(Tokens, RestNodes),
             [Node | Rest];
         _ when TokLoc == NodeLoc ->
             reinsert_tokens(RestTokens, Nodes)
     end.
+
+
+discard_tokens([], _) ->
+    [];
+
+discard_tokens([Token | RestTokens] = Tokens, End) ->
+    TokLoc = emilio_anno:lc(Token),
+    EndLoc = emilio_anno:lc(End),
+    case TokLoc =< EndLoc of
+        true ->
+            discard_tokens(RestTokens, End);
+        false ->
+            discard_leading_whitespace(Tokens)
+    end.
+
+
+discard_leading_whitespace([]) ->
+    [];
+
+discard_leading_whitespace([{white_space, _, _} | RestTokens]) ->
+    discard_leading_whitespace(RestTokens);
+
+discard_leading_whitespace(Tokens) ->
+    Tokens.
 
 
 detextify([]) ->
