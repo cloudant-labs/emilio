@@ -1194,6 +1194,8 @@ build_attribute({atom,Aa,file}, Val) ->
     end;
 build_attribute({atom,Aa,define}, Val) ->
     {attribute,Aa,define,Val};
+build_attribute({atom,Aa,undef}, Val) ->
+    {attribute,Aa,undef,Val};
 build_attribute({atom,Aa,ifdef}, Val) ->
     {attribute,Aa,ifdef,Val};
 build_attribute({atom,Aa,ifndef}, Val) ->
