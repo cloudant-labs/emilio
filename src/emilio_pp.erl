@@ -422,7 +422,8 @@ linearize_expr({call, Anno, {remote, Anno, Mod, Fun}, Args}) ->
     LinearMod = linearize_expr(Mod),
     LinearFun = linearize_expr(Fun),
     LinearArgs = lists:flatmap(fun linearize_expr/1, Args),
-    [{call_remote, Anno, length(Args)}]
+    CallAnno = set_earliest(Anno, LinearMod),
+    [{call_remote, CallAnno, length(Args)}]
             ++ LinearMod
             ++ LinearFun
             ++ LinearArgs;
@@ -430,7 +431,8 @@ linearize_expr({call, Anno, {remote, Anno, Mod, Fun}, Args}) ->
 linearize_expr({call, Anno, Fun, Args}) ->
     LinearFun = linearize_expr(Fun),
     LinearArgs = lists:flatmap(fun linearize_expr/1, Args),
-    [{call, Anno, length(Args)}] ++ LinearFun ++ LinearArgs;
+    CallAnno = set_earliest(Anno, LinearFun),
+    [{call, CallAnno, length(Args)}] ++ LinearFun ++ LinearArgs;
 
 linearize_expr({lc, Anno, Template, Qualifiers}) ->
     LinearTemplate = linearize_expr(Template),
@@ -569,7 +571,8 @@ linearize_clause(Type, {clause, Anno, Patterns, Guards, Body}) ->
     LinearPatterns = lists:flatmap(fun linearize_expr/1, Patterns),
     LinearGuards = linearize_guards(Anno, Guards),
     LinearBody = lists:flatmap(fun linearize_expr/1, Body),
-    [{Type, Anno, length(Patterns), length(Guards)}]
+    ClauseAnno = set_earliest(Anno, LinearPatterns),
+    [{Type, ClauseAnno, length(Patterns), length(Guards)}]
             ++ LinearPatterns
             ++ LinearGuards
             ++ LinearBody.
@@ -591,9 +594,23 @@ linearize_guards(_Anno, Guards) ->
 linearize_guards(Guards) ->
     lists:flatmap(fun(GuardExprs) ->
         LinearExprs = lists:flatmap(fun linearize_expr/1, GuardExprs),
-        [{guard, element(2, hd(GuardExprs)), length(GuardExprs)}]
+        [{guard, element(2, hd(LinearExprs)), length(GuardExprs)}]
                 ++ LinearExprs
     end, Guards).
+
+
+set_earliest(Anno, []) ->
+    Anno;
+
+set_earliest(Anno, [Token | _]) ->
+    AnnoLoc = emilio_anno:lc(Anno),
+    TokenLoc = emilio_anno:lc(Token),
+    case TokenLoc < AnnoLoc of
+        false ->
+            Anno;
+        true ->
+            emilio_anno:set_location(Anno, TokenLoc)
+    end.
 
 
 rewhitespace([]) ->

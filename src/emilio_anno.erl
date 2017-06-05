@@ -19,6 +19,7 @@
 
     inc_line/1,
     inc_col/1,
+    set_location/2,
     copy_ref/2
 ]).
 
@@ -51,6 +52,21 @@ inc_line(Anno) when is_list(Anno) ->
 inc_col(Anno) when is_list(Anno) ->
     {_Line, Col} = lc(Anno),
     lists:keystore(column, 1, Anno, {column, Col + 1}).
+
+
+set_location(Anno, {Line, Col})
+        when is_list(Anno), is_integer(Line), is_integer(Col) ->
+    A1 = lists:keystore(line, 1, Anno, {line, Line}),
+    lists:keystore(column, 1, A1, {column, Col});
+
+set_location(Tuple, Loc) when is_tuple(Tuple), size(Tuple) >= 2 ->
+    set_location(element(2, Tuple), Loc);
+
+set_location(Anno, Loc) when is_list(Anno), is_list(Loc) ->
+    set_location(Anno, lc(Loc));
+
+set_location(Anno, Loc) ->
+    set_location(Anno, lc(Loc)).
 
 
 copy_ref(SrcAnno, DstAnno) when is_list(SrcAnno), is_list(DstAnno) ->
