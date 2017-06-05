@@ -450,13 +450,13 @@ try_clauses -> try_clause ';' try_clauses : ['$1' | '$3'].
 
 try_clause -> expr clause_guard clause_body :
 	A = ?anno('$1'),
-	{clause,A,[{tuple,A,[{atom,A,throw},'$1',{var,A,'_'}]}],'$2','$3'}.
+	{clause,A,[{tuple,A,[{atom,A,throw},'$1']}],'$2','$3'}.
 try_clause -> atom ':' expr clause_guard clause_body :
 	A = ?anno('$1'),
-	{clause,A,[{tuple,A,['$1','$3',{var,A,'_'}]}],'$4','$5'}.
+	{clause,A,[{tuple,A,['$1','$3']}],'$4','$5'}.
 try_clause -> var ':' expr clause_guard clause_body :
 	A = ?anno('$1'),
-	{clause,A,[{tuple,A,['$1','$3',{var,A,'_'}]}],'$4','$5'}.
+	{clause,A,[{tuple,A,['$1','$3']}],'$4','$5'}.
 
 
 argument_list -> '(' ')' : {[],?anno('$1')}.
