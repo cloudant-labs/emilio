@@ -36,7 +36,7 @@ format_error(501, MaxLength) ->
 
 
 run(Lines) ->
-    MaxLength = emilio_cfg:get_int(line_length, max, 80),
+    MaxLength = emilio_cfg:get(max_line_length),
     emilio_lib:foreach_line(fun(Anno, Line) ->
         check_line(Anno, MaxLength, Line)
     end, Lines).

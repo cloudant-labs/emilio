@@ -14,28 +14,28 @@
 
 
 -export([
-    walk/2
+    walk/3
 ]).
 
 
-walk(FilePath, UserFun) ->
+walk(FilePath, UserFun, UserAcc) ->
     case filelib:is_dir(FilePath) of
         true ->
-            walk_dir(FilePath, UserFun);
+            walk_dir(FilePath, UserFun, UserAcc);
         false ->
-            UserFun(FilePath)
+            UserFun(FilePath, UserAcc)
     end.
 
 
-walk_dir(DirPath, UserFun) ->
+walk_dir(DirPath, UserFun, UserAcc) ->
     Pattern = filename:join([DirPath, "*"]),
     Files = filelib:wildcard(Pattern),
     NonDot = lists:filter(fun(F) -> hd(F) /= "." end, Files),
     RegularFiles = lists:filter(fun filelib:is_regular/1, NonDot),
-    lists:foreach(fun(File) ->
-        walk(File, UserFun)
-    end, lists:sort(RegularFiles)),
+    Acc1 = lists:foldl(fun(File, Acc0) ->
+        walk(File, UserFun, Acc0)
+    end, UserAcc, lists:sort(RegularFiles)),
     Dirs = lists:filter(fun filelib:is_dir/1, NonDot),
-    lists:foreach(fun(Dir) ->
-        walk(Dir, UserFun)
-    end, lists:sort(Dirs)).
+    lists:foldl(fun(Dir, Acc2) ->
+        walk(Dir, UserFun, Acc2)
+    end, Acc1, lists:sort(Dirs)).

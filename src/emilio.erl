@@ -22,52 +22,91 @@
 
 
 -define(OPTIONS, [
-    {help, $h, "help", 'boolean', "Show this help message"}
+    {
+        help,
+        $h,
+        "help",
+        'boolean',
+        "Show this help message"
+    },
+    {
+        config,
+        $c,
+        "config",
+        'string',
+        "The config file to use [default: emilio.cfg]"
+    },
+    {
+        jobs,
+        $j,
+        "jobs",
+        'integer',
+        "Number of files to process in parallel [default: 4]"
+    },
+    {
+        format,
+        $f,
+        "format",
+        'string',
+        "Set the output format [default: text]"
+    }
 ]).
 
 
 main(Argv) ->
-    emilio_report:start(),
     case getopt:parse(?OPTIONS, Argv) of
         {ok, {Opts, Args}} ->
-            run(Opts, Args);
+            execute(Opts, Args);
         _ ->
             usage(1)
     end.
 
 
-run(Opts, Args) ->
+execute(Opts, Args) ->
     case lists:keyfind(help, 1, Opts) of
         {help, true} ->
             usage(0);
         _ ->
-            process(Args)
+            run(Opts, Args)
     end.
 
 
 usage(Status) ->
     Name = escript:script_name(),
     Extra = "path [path ...]",
-    Help = [{"path", "Paths to process, directories searched recursively"}],
-    Out = getopt:usage(?OPTIONS, Name, Extra, Help),
-    io:format(standard_error, "~s", [Out]),
-    init:stop(Status).
+    Help = [
+        {"path", "Paths to process, directories are searched recursively"}
+    ],
+    getopt:usage(?OPTIONS, Name, Extra, Help),
+    emilio_util:shutdown(Status).
 
 
-process([]) ->
-    init:stop(0);
-
-process([Path | Rest]) ->
-    emilio_path:walk(Path, fun process_file/1),
-    process(Rest).
+run(Opts, Args) ->
+    emilio_cfg:compile(Opts),
+    emilio_report:start_link(),
+    process(Args, []).
 
 
-process_file(FileName) ->
+process([], _Jobs) ->
+    {ok, Count} = emilio_report:wait(),
+    Status = if
+        Count == 0 -> 0;
+        true -> 2
+    end,
+    emilio_util:shutdown(Status);
+
+process([Path | Rest], Jobs) ->
+    NewJobs = emilio_path:walk(Path, fun process_file/2, Jobs),
+    process(Rest, NewJobs).
+
+
+process_file(FileName, Jobs) ->
     case filename:extension(FileName) of
         ".erl" -> run_checks(FileName);
         ".hrl" -> run_checks(FileName);
         _ -> ok
-    end.
+    end,
+    Jobs.
 
 
 run_checks(FileName) ->

@@ -10,7 +10,7 @@
 % License for the specific language governing permissions and limitations under
 % the License.
 
--module(emilio_check_indents_units).
+-module(emilio_check_indents_counts).
 
 -export([
     codes/0,
@@ -31,24 +31,24 @@ explain(111) ->
     "White space is important".
 
 
-format_error(111, Units) ->
-    io_lib:format("leading white space should be a multiple of ~b", [Units]).
+format_error(111, Count) ->
+    io_lib:format("leading white space should be a multiple of ~b", [Count]).
 
 
 run(Lines) ->
-    Units = emilio_cfg:get_int(indentation, units, 4),
+    Count = emilio_cfg:get(indentation_count),
     emilio_lib:foreach_line(fun(Loc, Line) ->
-        check_line(Loc, Units, Line)
+        check_line(Loc, Count, Line)
     end, Lines).
 
 
-check_line(_Loc, _Units, [{white_space, _, [$\n]}]) ->
+check_line(_Loc, _Count, [{white_space, _, [$\n]}]) ->
     ok;
 
-check_line(Loc, Units, [{white_space, _, Text} | _]) ->
-    if length(Text) rem Units == 0 -> ok; true ->
-        ?EMILIO_REPORT(Loc, 111, Units)
+check_line(Loc, Count, [{white_space, _, Text} | _]) ->
+    if length(Text) rem Count == 0 -> ok; true ->
+        ?EMILIO_REPORT(Loc, 111, Count)
     end;
 
-check_line(_Loc, _UNits, _Line) ->
+check_line(_Loc, _Count, _Line) ->
     ok.

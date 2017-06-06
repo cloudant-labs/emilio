@@ -14,10 +14,11 @@
 
 
 -export([
-    start/0,
+    start_link/0,
     queue/1,
     store/5,
-    finish/1
+    finish/1,
+    wait/0
 ]).
 
 -export([
@@ -30,15 +31,26 @@
 ]).
 
 
+-define(FORMATTERS, [
+    {text, emilio_report_formatter_text},
+    {csv, emilio_report_formatter_csv},
+    {json, emilio_report_formatter_json}
+]).
+
+
 -record(st, {
     files = queue:new(),
     reports = dict:new(),
-    finished = sets:new()
+    finished = sets:new(),
+    count = 0,
+    formatter,
+    formatter_st,
+    waiter
 }).
 
 
-start() ->
-    gen_server:start({local, ?MODULE}, ?MODULE, [], []).
+start_link() ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 
 queue(FileName) ->
@@ -55,8 +67,17 @@ finish(FileName) ->
     gen_server:call(?MODULE, {finish, FileName}).
 
 
+wait() ->
+    gen_server:call(?MODULE, wait, infinity).
+
+
 init(_) ->
-    {ok, #st{}}.
+    Fmt = get_formatter(),
+    {ok, FmtSt} = Fmt:init(),
+    {ok, #st{
+        formatter = Fmt,
+        formatter_st = FmtSt
+    }}.
 
 
 terminate(_Reason, _St) ->
@@ -72,8 +93,10 @@ handle_call({store, FileName, Line, Col, Code, Msg}, _From, St) ->
     {reply, ok, NewSt};
 
 handle_call({finish, FileName}, _From, St) ->
-    NewSt = finish(St, FileName),
-    {reply, ok, NewSt};
+    finish(St, FileName);
+
+handle_call(wait, From, St) ->
+    wait(St, From);
 
 handle_call(Msg, _From, St) ->
     {stop, {bad_call, Msg}, {bad_call, Msg}, St}.
@@ -110,10 +133,23 @@ finish(#st{finished = Finished} = St, FileName) ->
     drain(St#st{finished = NewFinished}).
 
 
+wait(#st{waiter = Waiter} = St, From) when Waiter /= undefined ->
+    gen_server:reply(From, {error, waiter_exists}),
+    {noreply, St};
+
+wait(#st{files = Files, count = Count} = St, From) ->
+    case queue:is_empty(Files) of
+        true ->
+            gen_server:reply(From, {ok, Count}),
+            {stop, normal, St};
+        false ->
+            {noreply, St#st{waiter = From}}
+    end.
+
+
 drain(St) ->
     #st{
         files = Files,
-        reports = Reports,
         finished = Finished
     } = St,
     case queue:peek(Files) of
@@ -122,38 +158,54 @@ drain(St) ->
         {value, FileName} ->
             case sets:is_element(FileName, Finished) of
                 true ->
-                    FileReports = case dict:find(FileName, Reports) of
-                        {ok, R} -> R;
-                        error -> []
-                    end,
-                    render(FileName, FileReports),
-                    {{value, FileName}, NewFiles} = queue:out(Files),
-                    NewReports = dict:erase(FileName, Reports),
-                    NewFinished = sets:del_element(FileName, Finished),
-                    St#st{
-                        files = NewFiles,
-                        reports = NewReports,
-                        finished = NewFinished
-                    };
+                    format_report(St, FileName);
                 false ->
                     St
             end
     end.
 
 
-render(_FileName, []) ->
-    ok;
-
-render(FileName, Reports) ->
-    Formatter = get_formatter(),
-    lists:foreach(fun({Line, Col, Code, Msg}) ->
-        Formatter(FileName, Line, Col, Code, Msg)
-    end, lists:sort(Reports)).
+format_report(St, FileName) ->
+    #st{
+        files = Files,
+        reports = Reports,
+        finished = Finished,
+        count = Count,
+        formatter = Fmt,
+        formatter_st = FmtSt,
+        waiter = Waiter
+    } = St,
+    FileReports = case dict:find(FileName, Reports) of
+        {ok, R} -> R;
+        error -> []
+    end,
+    NewFmtSt = lists:foldl(fun({Line, Col, Code, Msg}, Acc) ->
+        Fmt:format(FileName, Line, Col, Code, Msg, Acc)
+    end, FmtSt, FileReports),
+    {{value, FileName}, NewFiles} = queue:out(Files),
+    NewReports = dict:erase(FileName, Reports),
+    NewFinished = sets:del_element(FileName, Finished),
+    NewCount = Count + length(FileReports),
+    case queue:is_empty(NewFiles) of
+        true when Waiter /= undefined ->
+            gen_server:reply(Waiter, {ok, NewCount}),
+            {stop, normal, St};
+        _ ->
+            NewSt = St#st{
+                files = NewFiles,
+                reports = NewReports,
+                finished = NewFinished,
+                formatter_st = NewFmtSt,
+                count = NewCount
+            },
+            {reply, ok, NewSt}
+    end.
 
 
 get_formatter() ->
-    fun default_formatter/5.
-
-
-default_formatter(FileName, Line, Col, Code, Msg) ->
-    io:format("~s:~b(~b) - ~b - ~s~n", [FileName, Line, Col, Code, Msg]).
+    Fmt = emilio_cfg:get(report_formatter),
+    {_, Formatter} = if
+        is_atom(Fmt) -> lists:keyfind(Fmt, 1, ?FORMATTERS);
+        is_list(Fmt) -> lists:keyfind(list_to_atom(Fmt), 1, ?FORMATTERS)
+    end,
+    Formatter.

@@ -164,7 +164,7 @@ indent_level([{white_space, _, Text} | Rest], Acc) ->
     indent_level(Rest, [Text | Acc]);
 
 indent_level(_, Text) ->
-    Units = emilio_cfg:get_int(indentation, units, 4),
+    Units = emilio_cfg:get(indentation_count),
     Spaces = length(lists:flatten(lists:reverse(Text))),
     Base = Spaces div Units,
     Base + if Spaces rem Units == 0 -> 0; true -> 1 end.
