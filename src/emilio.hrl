@@ -23,8 +23,13 @@
 ]).
 
 
+-define(EMILIO_FILE_KEY, emilio_curr_file).
+
+
 -define(EMILIO_REPORT(Anno, Code),
-        emilio_lib:report(?MODULE, Anno, Code, undefined)).
+        emilio_report:store(
+                get(?EMILIO_FILE_KEY), ?MODULE, Anno, Code, undefined)).
 
 -define(EMILIO_REPORT(Anno, Code, Arg),
-        emilio_lib:report(?MODULE, Anno, Code, Arg)).
+        emilio_report:store(
+                get(?EMILIO_FILE_KEY), ?MODULE, Anno, Code, Arg)).

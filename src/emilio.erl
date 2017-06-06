@@ -27,6 +27,7 @@
 
 
 main(Argv) ->
+    emilio_report:start(),
     case getopt:parse(?OPTIONS, Argv) of
         {ok, {Opts, Args}} ->
             run(Opts, Args);
@@ -70,9 +71,10 @@ process_file(FileName) ->
 
 
 run_checks(FileName) ->
-    io:format(standard_error, "~s~n", [FileName]),
+    put(emilio_curr_file, FileName),
+    emilio_report:queue(FileName),
     Tokens = emilio_pp:file(FileName),
     lists:foreach(fun(Check) ->
         Check:run(Tokens)
     end, ?EMILIO_CHECKS),
-    io:format(standard_error, "~n", []).
+    emilio_report:finish(FileName).

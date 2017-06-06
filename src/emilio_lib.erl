@@ -29,8 +29,6 @@
     find_ref_rev/2,
     find_ref_rev/3,
 
-    report/4,
-
     indent_level/1,
     is_blank_line/1
 ]).
@@ -153,13 +151,6 @@ find_ref_rev(Ctx, Ref, Names) when is_reference(Ref), is_list(Names) ->
 
 find_ref_rev(Ctx, Ref, Name) when is_atom(Name) ->
     find_ref_rev(Ctx, Ref, [Name]).
-
-
-report(Module, Anno, Code, Arg) ->
-    {Line, Col} = emilio_anno:lc(Anno),
-    Msg = Module:format_error(Code, Arg),
-    Fmt = "~b(~b) : ~b : ~s~n",
-    io:format(Fmt, [Line, Col, Code, Msg]).
 
 
 indent_level(Line) ->
