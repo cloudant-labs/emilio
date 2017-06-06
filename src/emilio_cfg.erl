@@ -136,4 +136,3 @@ split_form([{dot, _} = Token | Rest]) ->
 split_form([Token | Rest]) ->
     {RestForm, RestTokens} = split_form(Rest),
     {[Token | RestForm], RestTokens}.
-

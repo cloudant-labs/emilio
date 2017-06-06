@@ -44,7 +44,7 @@
         "Number of files to process in parallel [default: 4]"
     },
     {
-        format,
+        report_formatter,
         $f,
         "format",
         'string',

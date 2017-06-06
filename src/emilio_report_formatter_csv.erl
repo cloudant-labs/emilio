@@ -10,18 +10,24 @@
 % License for the specific language governing permissions and limitations under
 % the License.
 
--module(emilio_log).
+-module(emilio_report_formatter_csv).
 
 
 -export([
-    warn/2,
-    error/2
+    init/0,
+    terminate/1,
+    format/6
 ]).
 
 
-warn(Format, Args) ->
-    io:format(standard_error, "warn: " ++ Format, Args).
+init() ->
+    io:format("File,Line,Column,Code,Message~n", []),
+    {ok, nil}.
 
 
-error(Format, Args) ->
-    io:format(standard_error, "error: " ++ Format, Args).
+terminate(_St) ->
+    ok.
+
+
+format(FileName, Line, Col, Code, Msg, _St) ->
+    io:format("~s,~b,~b,~b,\"~s\"~n", [FileName, Line, Col, Code, Msg]).
