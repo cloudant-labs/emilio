@@ -154,13 +154,13 @@ drain(St) ->
     } = St,
     case queue:peek(Files) of
         empty ->
-            St;
+            {reply, ok, St};
         {value, FileName} ->
             case sets:is_element(FileName, Finished) of
                 true ->
                     format_report(St, FileName);
                 false ->
-                    St
+                    {reply, ok, St}
             end
     end.
 
@@ -198,7 +198,7 @@ format_report(St, FileName) ->
                 formatter_st = NewFmtSt,
                 count = NewCount
             },
-            {reply, ok, NewSt}
+            drain(NewSt)
     end.
 
 

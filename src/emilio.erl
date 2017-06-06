@@ -17,6 +17,10 @@
     main/1
 ]).
 
+-export([
+    process_file/1
+]).
+
 
 -include("emilio.hrl").
 
@@ -101,12 +105,39 @@ process([Path | Rest], Jobs) ->
 
 
 process_file(FileName, Jobs) ->
+    case length(Jobs) < emilio_cfg:get(jobs) of
+        true ->
+            {_, Ref} = spawn_monitor(?MODULE, process_file, [FileName]),
+            [{Ref, FileName} | Jobs];
+        false ->
+            NewJobs = wait_for_job(Jobs),
+            process_file(FileName, NewJobs)
+    end.
+
+
+wait_for_job(Jobs) ->
+    receive
+        {'DOWN', Ref, process, _Pid, normal} ->
+            lists:keydelete(Ref, 1, Jobs);
+        {'DOWN', Ref, process, _Pid, Reason} ->
+            {Ref, FileName} = lists:keyfind(Ref, 1, Jobs),
+            Args = [FileName, Reason],
+            emilio_log:error("Failed to process file: ~s :: ~p~n", Args),
+            emilio_util:shutdown(3)
+    after 30000 ->
+        Files = [FileName || {_, FileName} <- Jobs],
+        FileList = string:join(Files, ", "),
+        emilio_log:error("Timed out waiting for files: ~s~n", [FileList]),
+        emilio_util:shutdown(3)
+    end.
+
+
+process_file(FileName) ->
     case filename:extension(FileName) of
         ".erl" -> run_checks(FileName);
         ".hrl" -> run_checks(FileName);
         _ -> ok
-    end,
-    Jobs.
+    end.
 
 
 run_checks(FileName) ->
