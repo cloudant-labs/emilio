@@ -69,3 +69,12 @@ Notes
         source forms in a way that emilio is unable to parse the unexpanded
         source code. For now this is acceptable as it doesn't happen
         that often but it may be something to figure out later.
+
+
+Adding a Check
+---
+
+To add a new check to emilio you'll need to first implement your check
+as a module. The existing `emilio_check_*` modules should provide
+decent guidance on the implementation. To include the check you should
+add the module name to the list in `emilio.hrl` so that its executed.
