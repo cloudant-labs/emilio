@@ -18,7 +18,7 @@
 ]).
 
 -export([
-    process_file/1
+    start_job/2
 ]).
 
 
@@ -107,8 +107,7 @@ process([Path | Rest], Jobs) ->
 process_file(FileName, Jobs) ->
     case length(Jobs) < emilio_cfg:get(jobs) of
         true ->
-            {_, Ref} = spawn_monitor(?MODULE, process_file, [FileName]),
-            [{Ref, FileName} | Jobs];
+            [{start_job(FileName), FileName} | Jobs];
         false ->
             NewJobs = wait_for_job(Jobs),
             process_file(FileName, NewJobs)
@@ -130,6 +129,23 @@ wait_for_job(Jobs) ->
         emilio_log:error("Timed out waiting for files: ~s~n", [FileList]),
         emilio_util:shutdown(3)
     end.
+
+
+start_job(FileName) ->
+    {_, Ref} = spawn_monitor(?MODULE, start_job, [self(), FileName]),
+    receive
+        {started, FileName} ->
+            Ref;
+        {'DOWN', Ref, process, _Pid, Reason} ->
+            Args = [FileName, Reason],
+            emilio_log:error("Failed to start job for ~s :: ~p", Args),
+            emilio_util:shutdown(3)
+    end.
+
+
+start_job(Pid, FileName) ->
+    Pid ! {started, FileName},
+    process_file(FileName).
 
 
 process_file(FileName) ->
