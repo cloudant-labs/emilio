@@ -531,7 +531,7 @@ linearize_expr({map, Anno, Assocs}) ->
 
 linearize_expr({map, Anno, Expr, Assocs}) ->
     LinearExpr = linearize_expr(Expr),
-    LinearAssocs = lists:map(fun linearize_expr/1, Assocs),
+    LinearAssocs = lists:flatmap(fun linearize_expr/1, Assocs),
     [{map_update, Anno, length(Assocs)}] ++ LinearExpr ++ LinearAssocs;
 
 linearize_expr({map_field_assoc, Anno, Key, Val}) ->
