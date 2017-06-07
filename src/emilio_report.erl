@@ -176,7 +176,7 @@ format_report(St, FileName) ->
         waiter = Waiter
     } = St,
     FileReports = case dict:find(FileName, Reports) of
-        {ok, R} -> R;
+        {ok, R} -> lists:sort(R);
         error -> []
     end,
     NewFmtSt = lists:foldl(fun({Line, Col, Code, Msg}, Acc) ->
