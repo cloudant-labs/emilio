@@ -198,16 +198,12 @@ replace_macro_args([], _CloseStack, _Arg) ->
 macro_argify(Arg, Loc) ->
     Code = lists:filter(fun is_code/1, Arg),
     Expr = lists:reverse(Code, [{dot, Loc}]),
-    case emilio_erl_parse:parse_exprs(Expr) of
-        {ok, _} ->
-            lists:reverse(Arg);
-        {error, _} ->
-            % Convert arg tokens to a string
-            TextList = lists:foldl(fun
-                ({N, _}, Acc) -> [atom_to_list(N) | Acc];
-                ({_, _, V}, Acc) -> [io_lib:format("~p", [V]) | Acc]
-            end, [], Arg),
-            [{string, element(2, lists:last(Arg)), lists:flatten(TextList)}]
+    try
+        {ok, ExprForms} = emilio_erl_parse:parse_exprs(Expr),
+        lists:foreach(fun linearize_expr/1, ExprForms),
+        lists:reverse(Arg)
+    catch _:_ ->
+        stringify_tokens(lists:reverse(Arg))
     end.
 
 
@@ -906,3 +902,13 @@ get_location(Term) when is_tuple(Term), size(Term) >= 2 ->
 is_code({white_space, _, _}) -> false;
 is_code({comment, _, _}) -> false;
 is_code(_) -> true.
+
+
+stringify_tokens(Tokens) ->
+    % Convert arg tokens to a string
+    TextList = lists:foldl(fun
+        ({N, _}, Acc) -> [atom_to_list(N) | Acc];
+        ({_, _, V}, Acc) -> [io_lib:format("~p", [V]) | Acc]
+    end, [], Tokens),
+    Text = lists:flatten(lists:reverse(TextList)),
+    [{string, element(2, hd(Tokens)), Text}].
