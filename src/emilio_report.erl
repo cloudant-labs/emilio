@@ -33,6 +33,7 @@
 
 -define(FORMATTERS, [
     {text, emilio_report_formatter_text},
+    {summary, emilio_report_formatter_summary},
     {csv, emilio_report_formatter_csv},
     {json, emilio_report_formatter_json}
 ]).
@@ -68,7 +69,14 @@ finish(FileName) ->
 
 
 wait() ->
-    gen_server:call(?MODULE, wait, infinity).
+    Ref = erlang:monitor(process, whereis(?MODULE)),
+    Resp = gen_server:call(?MODULE, wait, infinity),
+    receive
+        {'DOWN', Ref, process, _, _} ->
+            Resp
+    after 1000 ->
+        Resp
+    end.
 
 
 init(_) ->
@@ -80,8 +88,12 @@ init(_) ->
     }}.
 
 
-terminate(_Reason, _St) ->
-    ok.
+terminate(_Reason, St) ->
+    #st{
+        formatter = Fmt,
+        formatter_st = FmtSt
+    } = St,
+    Fmt:terminate(FmtSt).
 
 
 handle_call({queue, FileName}, _From, St) ->

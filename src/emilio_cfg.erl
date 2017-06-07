@@ -33,6 +33,7 @@
 
 -define(FORMATTERS, [
     text, "text",
+    summary, "summary",
     csv, "csv",
     json, "json"
 ]).
