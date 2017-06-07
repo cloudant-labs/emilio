@@ -34,10 +34,11 @@ file(FilePath) ->
         ),
     Reverted = revert_annos(AllTokens),
     MacroedTokens = macroize(Reverted),
-    {CodeTokens, _NonCodeTokens} = split_code(MacroedTokens),
+    ReDefinedTokens = process_define_args(MacroedTokens),
+    {CodeTokens, _NonCodeTokens} = split_code(ReDefinedTokens),
     Forms = parse_forms(CodeTokens, []),
     Linearized = lists:flatmap(fun linearize/1, Forms),
-    Rewhitespaced = rewhitespace(MacroedTokens),
+    Rewhitespaced = rewhitespace(ReDefinedTokens),
     Reinserted = reinsert_tokens(Rewhitespaced, Linearized),
     DeTexted = detextify(Reinserted),
     group_lines(DeTexted).
@@ -50,17 +51,14 @@ format_error(901, Arg) ->
 split_code([]) ->
     {[], []};
 
-split_code([Token | Rest]) when element(1, Token) == comment ->
-    {Code, NonCode} = split_code(Rest),
-    {Code, [Token | NonCode]};
-
-split_code([Token | Rest]) when element(1, Token) == white_space ->
-    {Code, NonCode} = split_code(Rest),
-    {Code, [Token | NonCode]};
-
 split_code([Token | Rest]) ->
     {Code, NonCode} = split_code(Rest),
-    {[Token | Code], NonCode}.
+    case is_code(Token) of
+        true ->
+            {[Token | Code], NonCode};
+        false ->
+            {Code, [Token | NonCode]}
+    end.
 
 
 revert_annos([]) ->
@@ -89,13 +87,14 @@ macroize([{'?', Anno} = MacroToken | Rest]) ->
             end, ["?"], MacroTokens),
             Text = lists:flatten(lists:reverse(TextList)),
             NewToken = {macro, Anno, list_to_atom(Text)},
-            [NewToken] ++ macroize(RestTokens);
+            RestMacroized = macroize(RestTokens),
+            [NewToken] ++ replace_macro_args(RestMacroized);
         not_a_macro ->
             [MacroToken] ++ macroize(Rest)
     end;
 
 macroize([Token | Rest]) ->
-    [Token | macroize(Rest)].
+    [Token] ++ macroize(Rest).
 
 
 extend_macro([{'?', _} = MacroToken | Rest]) ->
@@ -117,6 +116,123 @@ extend_macro([{var, _, _} = MacroToken | Rest]) ->
 
 extend_macro(_) ->
     not_a_macro.
+
+
+% The logic for replace_macro_args is based on skip_macro_args
+% in epp_dodger.erl
+%
+% The logic here is that for every argument in a call
+% to a macro we try to parse the expression. If it parses
+% then we leave it alone. If it doesn't parse then we
+% replace the argument with a stringified version.
+
+replace_macro_args([{'(', _} = Token | Rest]) ->
+    [Token] ++ replace_macro_args(Rest, [')'], []);
+
+replace_macro_args([{white_space, _, _} = Token | Rest]) ->
+    [Token] ++ replace_macro_args(Rest);
+
+replace_macro_args(Tokens) ->
+    Tokens.
+
+
+replace_macro_args([{'(', _} = Token | Rest], CloseStack, Arg) ->
+    replace_macro_args(Rest, [')' | CloseStack], [Token | Arg]);
+
+replace_macro_args([{'{', _} = Token | Rest], CloseStack, Arg) ->
+    replace_macro_args(Rest, ['}' | CloseStack], [Token | Arg]);
+
+replace_macro_args([{'[', _} = Token | Rest], CloseStack, Arg) ->
+    replace_macro_args(Rest, [']' | CloseStack], [Token | Arg]);
+
+replace_macro_args([{'<<', _} = Token | Rest], CloseStack, Arg) ->
+    replace_macro_args(Rest, ['>>' | CloseStack], [Token | Arg]);
+
+replace_macro_args([{'begin', _} = Token | Rest], CloseStack, Arg) ->
+    replace_macro_args(Rest, ['end' | CloseStack], [Token | Arg]);
+
+replace_macro_args([{'if', _} = Token | Rest], CloseStack, Arg) ->
+    replace_macro_args(Rest, ['end' | CloseStack], [Token | Arg]);
+
+replace_macro_args([{'case', _} = Token | Rest], CloseStack, Arg) ->
+    replace_macro_args(Rest, ['end' | CloseStack], [Token | Arg]);
+
+replace_macro_args([{'receive', _} = Token | Rest], CloseStack, Arg) ->
+    replace_macro_args(Rest, ['end' | CloseStack], [Token | Arg]);
+
+replace_macro_args([{'try', _} = Token | Rest], CloseStack, Arg) ->
+    replace_macro_args(Rest, ['end' | CloseStack], [Token | Arg]);
+
+replace_macro_args([{'cond', _} = Token | Rest], CloseStack, Arg) ->
+    replace_macro_args(Rest, ['end' | CloseStack], [Token | Arg]);
+
+replace_macro_args([{',', Loc} = Token | Rest], [Close], Arg) ->
+    % Note that the logic here is that we hit a comma
+    % at the top level between '(' and ')' which indicates
+    % that we've finished accumulating an argument.
+    macro_argify(Arg, Loc) ++ [Token] ++ replace_macro_args(Rest, [Close], []);
+
+replace_macro_args([{Close, Loc} = Token | Rest], [Close], Arg) ->
+    % Need to check the last argument in case this was
+    % a call with no arguments
+    Replacement = case length(lists:filter(fun is_code/1, Arg)) of
+        0 ->
+            lists:reverse(Arg);
+        _ ->
+            macro_argify(Arg, Loc)
+    end,
+    Replacement ++ [Token] ++ Rest;
+
+replace_macro_args([{Close, _} = Token | Rest], [Close | CloseStack], Arg) ->
+    % Matched a closing element
+    replace_macro_args(Rest, CloseStack, [Token | Arg]);
+
+replace_macro_args([Token | Rest], CloseStack, Arg) ->
+    % Anything else just goes into the current argument
+    replace_macro_args(Rest, CloseStack, [Token | Arg]);
+
+replace_macro_args([], _CloseStack, _Arg) ->
+    throw({error, macro_args}).
+
+
+macro_argify(Arg, Loc) ->
+    Code = lists:filter(fun is_code/1, Arg),
+    Expr = lists:reverse(Code, [{dot, Loc}]),
+    case emilio_erl_parse:parse_exprs(Expr) of
+        {ok, _} ->
+            lists:reverse(Arg);
+        {error, _} ->
+            % Convert arg tokens to a string
+            TextList = lists:foldl(fun
+                ({N, _}, Acc) -> [atom_to_list(N) | Acc];
+                ({_, _, V}, Acc) -> [io_lib:format("~p", [V]) | Acc]
+            end, [], Arg),
+            [{string, element(2, lists:last(Arg)), lists:flatten(TextList)}]
+    end.
+
+
+process_define_args([]) ->
+    [];
+
+process_define_args([{'-', _} = Token | Rest]) ->
+    [Token] ++ process_define_args(find_define(Rest));
+
+process_define_args([Token | Rest]) ->
+    [Token] ++ process_define_args(Rest).
+
+
+find_define([]) ->
+    [];
+
+find_define([{atom, _, define} = Token | Rest]) ->
+    [Token] ++ replace_macro_args(Rest);
+
+find_define([{white_space, _, _} = Token | Rest]) ->
+    [Token] ++ find_define(Rest);
+
+find_define(Tokens) ->
+    Tokens.
+
 
 parse_forms([], Acc) ->
     lists:reverse(Acc);
@@ -785,3 +901,8 @@ get_location(Term) when is_tuple(Term), size(Term) >= 2 ->
     {line, Line} = lists:keyfind(line, 1, Anno),
     {column, Column} = lists:keyfind(column, 1, Anno),
     {Line, Column}.
+
+
+is_code({white_space, _, _}) -> false;
+is_code({comment, _, _}) -> false;
+is_code(_) -> true.
