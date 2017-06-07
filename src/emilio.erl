@@ -105,7 +105,11 @@ process([Path | Rest], Jobs) ->
 
 
 process_file(FileName, Jobs) ->
-    case length(Jobs) < emilio_cfg:get(jobs) of
+    JobCount = emilio_cfg:get(jobs),
+    case length(Jobs) < JobCount of
+        true when JobCount == 1 ->
+            process_file(FileName),
+            Jobs;
         true ->
             [{start_job(FileName), FileName} | Jobs];
         false ->
