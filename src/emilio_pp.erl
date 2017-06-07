@@ -39,9 +39,6 @@ file(FilePath) ->
     Linearized = lists:flatmap(fun linearize/1, Forms),
     Rewhitespaced = rewhitespace(MacroedTokens),
     Reinserted = reinsert_tokens(Rewhitespaced, Linearized),
-    %% lists:foreach(fun(Token) ->
-    %%     io:format(standard_error, "~5000p~n", [Token])
-    %% end, Reinserted),
     DeTexted = detextify(Reinserted),
     group_lines(DeTexted).
 
@@ -80,25 +77,46 @@ revert_annos([Token | Rest]) ->
 macroize([]) ->
     [];
 
-macroize([{'?', Anno}, {atom, _, Name} | Rest]) ->
-    NewText = [$? | atom_to_list(Name)],
-    NewToken = {macro, Anno, list_to_atom(NewText)},
-    [NewToken | macroize(Rest)];
-
-macroize([{'?', _} = T1, {var, Anno, Name} | Rest]) ->
-    macroize([T1, {atom, Anno, Name} | Rest]);
-
-macroize([{'?', Anno}, {'?', _}, {atom, _, Name} | Rest]) ->
-    NewText = [$?, $? | atom_to_list(Name)],
-    NewToken = {macro, Anno, list_to_atom(NewText)},
-    [NewToken | macroize(Rest)];
-
-macroize([{'?', _} = T1, {'?', _} = T2, {var, Anno, Name} | Rest]) ->
-    macroize([T1, T2, {atom, Anno, Name} | Rest]);
+macroize([{'?', Anno} = MacroToken | Rest]) ->
+    case extend_macro(Rest) of
+        {MacroTokens, RestTokens} ->
+            TextList = lists:foldl(fun(Token, Acc) ->
+                case Token of
+                    {'?', _} -> ["?" | Acc];
+                    {atom, _, Name} -> [atom_to_list(Name) | Acc];
+                    {var, _, Name} -> [atom_to_list(Name) | Acc]
+                end
+            end, ["?"], MacroTokens),
+            Text = lists:flatten(lists:reverse(TextList)),
+            NewToken = {macro, Anno, list_to_atom(Text)},
+            [NewToken] ++ macroize(RestTokens);
+        not_a_macro ->
+            [MacroToken] ++ macroize(Rest)
+    end;
 
 macroize([Token | Rest]) ->
     [Token | macroize(Rest)].
 
+
+extend_macro([{'?', _} = MacroToken | Rest]) ->
+    case extend_macro(Rest) of
+        {RestMacro, RestTokens} ->
+            {[MacroToken | RestMacro], RestTokens};
+        not_a_macro ->
+            not_a_macro
+    end;
+
+extend_macro([{white_space, _, _} | Rest]) ->
+    extend_macro(Rest);
+
+extend_macro([{atom, _, _} = MacroToken | Rest]) ->
+    {[MacroToken], Rest};
+
+extend_macro([{var, _, _} = MacroToken | Rest]) ->
+    {[MacroToken], Rest};
+
+extend_macro(_) ->
+    not_a_macro.
 
 parse_forms([], Acc) ->
     lists:reverse(Acc);
