@@ -27,9 +27,9 @@
 
 
 -define(EMILIO_REPORT(Anno, Code),
-        emilio_report:store(
+        emilio_report:update(
                 get(?EMILIO_FILE_KEY), ?MODULE, Anno, Code, undefined)).
 
 -define(EMILIO_REPORT(Anno, Code, Arg),
-        emilio_report:store(
+        emilio_report:update(
                 get(?EMILIO_FILE_KEY), ?MODULE, Anno, Code, Arg)).

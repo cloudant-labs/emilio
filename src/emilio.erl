@@ -17,10 +17,6 @@
     main/1
 ]).
 
--export([
-    start_job/2
-]).
-
 
 -include("emilio.hrl").
 
@@ -95,92 +91,35 @@ usage(Status) ->
 run(Opts, Args) ->
     emilio_cfg:compile(Opts),
     emilio_report:start_link(),
-    process(Args, []).
+    walk_each(Args).
 
 
-process([], _Jobs) ->
-    {ok, Count} = emilio_report:wait(),
+walk_each(Paths) ->
+    Ignores = emilio_cfg:get(ignore),
+    lists:foreach(fun(Path) ->
+        emilio_path:walk(Path, fun process_file/2, Ignores)
+    end, Paths),
+    {ok, _FileCount, ErrorCount} = emilio_report:wait(),
     Status = if
-        Count == 0 -> 0;
+        ErrorCount == 0 -> 0;
         true -> 2
     end,
-    emilio_util:shutdown(Status);
-
-process([Path | Rest], Jobs) ->
-    NewJobs = emilio_path:walk(Path, fun process_file/2, Jobs),
-    process(Rest, NewJobs).
+    emilio_util:shutdown(Status).
 
 
-process_file(FileName, Jobs) ->
-    Ignores = emilio_cfg:get(ignore),
+process_file(FileName, Ignores) ->
+    ShouldProcess = case filename:extension(FileName) of
+        ".erl" -> true;
+        ".hrl" -> true;
+        _ -> false
+    end,
     ShouldIgnore = lists:foldl(fun(Pattern, Acc) ->
         Acc orelse glob:matches(FileName, Pattern)
     end, false, Ignores),
-    case ShouldIgnore of
+    case ShouldProcess andalso not ShouldIgnore of
         true ->
-            Jobs;
+            emilio_report:queue(FileName);
         false ->
-            JobCount = emilio_cfg:get(jobs),
-            case length(Jobs) < JobCount of
-                true when JobCount == 1 ->
-                    process_file(FileName),
-                    Jobs;
-                true ->
-                    [{start_job(FileName), FileName} | Jobs];
-                false ->
-                    NewJobs = wait_for_job(Jobs),
-                    process_file(FileName, NewJobs)
-            end
-    end.
-
-
-wait_for_job(Jobs) ->
-    receive
-        {'DOWN', Ref, process, _Pid, normal} ->
-            lists:keydelete(Ref, 1, Jobs);
-        {'DOWN', Ref, process, _Pid, Reason} ->
-            {Ref, FileName} = lists:keyfind(Ref, 1, Jobs),
-            Args = [FileName, Reason],
-            emilio_log:error("Failed to process file: ~s :: ~p~n", Args),
-            emilio_util:shutdown(3)
-    after 30000 ->
-        Files = [FileName || {_, FileName} <- Jobs],
-        FileList = string:join(Files, ", "),
-        emilio_log:error("Timed out waiting for files: ~s~n", [FileList]),
-        emilio_util:shutdown(3)
-    end.
-
-
-start_job(FileName) ->
-    {_, Ref} = spawn_monitor(?MODULE, start_job, [self(), FileName]),
-    receive
-        {started, FileName} ->
-            Ref;
-        {'DOWN', Ref, process, _Pid, Reason} ->
-            Args = [FileName, Reason],
-            emilio_log:error("Failed to start job for ~s :: ~p", Args),
-            emilio_util:shutdown(3)
-    end.
-
-
-start_job(Pid, FileName) ->
-    Pid ! {started, FileName},
-    process_file(FileName).
-
-
-process_file(FileName) ->
-    case filename:extension(FileName) of
-        ".erl" -> run_checks(FileName);
-        ".hrl" -> run_checks(FileName);
-        _ -> ok
-    end.
-
-
-run_checks(FileName) ->
-    put(emilio_curr_file, FileName),
-    emilio_report:queue(FileName),
-    Tokens = emilio_pp:file(FileName),
-    lists:foreach(fun(Check) ->
-        Check:run(Tokens)
-    end, ?EMILIO_CHECKS),
-    emilio_report:finish(FileName).
+            ok
+    end,
+    Ignores.

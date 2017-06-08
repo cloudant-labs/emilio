@@ -16,8 +16,7 @@
 -export([
     start_link/0,
     queue/1,
-    store/5,
-    finish/1,
+    update/5,
     wait/0
 ]).
 
@@ -41,12 +40,16 @@
 
 -record(st, {
     files = queue:new(),
+    started = queue:new(),
+    jobs = dict:new(),
     reports = dict:new(),
     finished = sets:new(),
-    count = 0,
+    file_count = 0,
+    error_count = 0,
     formatter,
     formatter_st,
-    waiter
+    queue_waiter,
+    finish_waiter
 }).
 
 
@@ -55,17 +58,14 @@ start_link() ->
 
 
 queue(FileName) ->
-    gen_server:call(?MODULE, {queue, FileName}).
+    gen_server:call(?MODULE, {queue, FileName}, infinity).
 
 
-store(FileName, Module, Anno, Code, Arg) ->
+update(FileName, Module, Anno, Code, Arg) ->
     {Line, Col} = emilio_anno:lc(Anno),
-    Msg = Module:format_error(Code, Arg),
-    gen_server:call(?MODULE, {store, FileName, Line, Col, Code, Msg}).
-
-
-finish(FileName) ->
-    gen_server:call(?MODULE, {finish, FileName}, infinity).
+    ErrMsg = Module:format_error(Code, Arg),
+    Msg = {update, FileName, Line, Col, Code, ErrMsg},
+    gen_server:call(?MODULE, Msg, infinity).
 
 
 wait() ->
@@ -96,19 +96,62 @@ terminate(_Reason, St) ->
     Fmt:terminate(FmtSt).
 
 
-handle_call({queue, FileName}, _From, St) ->
-    NewSt = queue(St, FileName),
+handle_call({queue, FileName}, From, #st{queue_waiter = undefined} = St0) ->
+    #st{
+        files = Files,
+        file_count = FCount
+    } = St0,
+    NewFiles = queue:in(FileName, Files),
+    St1 = St0#st{
+        files = NewFiles,
+        file_count = FCount + 1
+    },
+    case maybe_start_job(St1) of
+        {ok, St2} ->
+            {reply, ok, St2};
+        full ->
+            St2 = St1#st{
+                queue_waiter = From
+            },
+            {noreply, St2}
+    end;
+
+handle_call({queue, _}, _From, St) ->
+    {reply, {error, queue_waiter_exists}, St};
+
+handle_call({update, FileName, Line, Col, Code, Msg}, _From, St) ->
+    #st{
+        reports = Reports,
+        error_count = ECount
+    } = St,
+    NewReports = case dict:is_key(FileName, Reports) of
+        true ->
+            dict:append(FileName, {Line, Col, Code, Msg}, Reports);
+        false ->
+            dict:store(FileName, [{Line, Col, Code, Msg}], Reports)
+    end,
+    NewSt = St#st{
+        reports = NewReports,
+        error_count = ECount + 1
+    },
     {reply, ok, NewSt};
 
-handle_call({store, FileName, Line, Col, Code, Msg}, _From, St) ->
-    NewSt = store(St, FileName, Line, Col, Code, Msg),
-    {reply, ok, NewSt};
+handle_call(wait, From, #st{finish_waiter = undefined} = St) ->
+    #st{
+        files = Files,
+        file_count = FCount,
+        error_count = ECount
+    } = St,
+    case queue:is_empty(Files) of
+        true ->
+            gen_server:reply(From, {ok, FCount, ECount}),
+            {stop, normal, St};
+        false ->
+            {noreply, St#st{finish_waiter = From}}
+    end;
 
-handle_call({finish, FileName}, _From, St) ->
-    finish(St, FileName);
-
-handle_call(wait, From, St) ->
-    wait(St, From);
+handle_call(wait, _From, St) ->
+    {reply, {error, finish_waiter_exists}, St};
 
 handle_call(Msg, _From, St) ->
     {stop, {bad_call, Msg}, {bad_call, Msg}, St}.
@@ -118,6 +161,32 @@ handle_cast(Msg, St) ->
     {stop, {bad_cast, Msg}, St}.
 
 
+handle_info({'DOWN', Ref, process, _, Reason}, St0) ->
+    #st{
+        jobs = Jobs,
+        finished = Finished,
+        queue_waiter = Waiter
+    } = St0,
+    FileName = dict:fetch(Ref, Jobs),
+    St1 = if Reason == normal -> St0; true ->
+        Fmt = "an error occurred while processing ~s :: ~p",
+        ErrMsg = io_lib:format(Fmt, [FileName, Reason]),
+        Msg = {update, FileName, 0, 0, 903, ErrMsg},
+        {reply, ok, S} = handle_call(Msg, nil, St0),
+        S
+    end,
+    if Waiter == undefined -> ok; true ->
+        gen_server:reply(Waiter, ok)
+    end,
+    NewJobs = dict:erase(Ref, Jobs),
+    NewFinished = sets:add_element(FileName, Finished),
+    St2 = St1#st{
+        jobs = NewJobs,
+        finished = NewFinished,
+        queue_waiter = undefined
+    },
+    drain(start_jobs(St2));
+
 handle_info(Msg, St) ->
     {stop, {bad_info, Msg}, St}.
 
@@ -126,66 +195,76 @@ code_change(_Vsn, St, _Extra) ->
     {ok, St}.
 
 
-queue(#st{files = Files} = St, FileName) ->
-    St#st{files = queue:in(FileName, Files)}.
+maybe_start_job(St) ->
+    #st{
+        files = Files,
+        started = Started,
+        jobs = Jobs
+    } = St,
+    case queue:peek(Files) of
+        empty ->
+            {ok, St};
+        {value, FileName} ->
+            case dict:size(Jobs) < emilio_cfg:get(jobs) of
+                true ->
+                    {{value, FileName}, NewFiles} = queue:out(Files),
+                    NewStarted = queue:in(FileName, Started),
+                    {_, Ref} = emilio_job:start(FileName),
+                    NewJobs = dict:store(Ref, FileName, Jobs),
+                    NewSt = St#st{
+                        files = NewFiles,
+                        started = NewStarted,
+                        jobs = NewJobs
+                    },
+                    {ok, NewSt};
+                false ->
+                    full
+            end
+    end.
 
 
-store(#st{reports = Reports} = St, FileName, Line, Col, Code, Msg) ->
-    NewReports = case dict:is_key(FileName, Reports) of
-        true ->
-            dict:append(FileName, {Line, Col, Code, Msg}, Reports);
-        false ->
-            dict:store(FileName, [{Line, Col, Code, Msg}], Reports)
-    end,
-    St#st{reports = NewReports}.
-
-
-finish(#st{finished = Finished} = St, FileName) ->
-    NewFinished = sets:add_element(FileName, Finished),
-    drain(St#st{finished = NewFinished}).
-
-
-wait(#st{waiter = Waiter} = St, From) when Waiter /= undefined ->
-    gen_server:reply(From, {error, waiter_exists}),
-    {noreply, St};
-
-wait(#st{files = Files, count = Count} = St, From) ->
-    case queue:is_empty(Files) of
-        true ->
-            gen_server:reply(From, {ok, Count}),
-            {stop, normal, St};
-        false ->
-            {noreply, St#st{waiter = From}}
+start_jobs(St) ->
+    case queue:peek(St#st.files) of
+        empty ->
+            St;
+        _ ->
+            case maybe_start_job(St) of
+                {ok, NewSt} ->
+                    start_jobs(NewSt);
+                full ->
+                    St
+            end
     end.
 
 
 drain(St) ->
     #st{
-        files = Files,
+        started = Started,
         finished = Finished
     } = St,
-    case queue:peek(Files) of
+    case queue:peek(Started) of
         empty ->
-            {reply, ok, St};
+            {noreply, St};
         {value, FileName} ->
             case sets:is_element(FileName, Finished) of
                 true ->
                     format_report(St, FileName);
                 false ->
-                    {reply, ok, St}
+                    {noreply, St}
             end
     end.
 
 
 format_report(St, FileName) ->
     #st{
-        files = Files,
+        started = Started,
         reports = Reports,
         finished = Finished,
-        count = Count,
+        file_count = FCount,
+        error_count = ECount,
         formatter = Fmt,
         formatter_st = FmtSt,
-        waiter = Waiter
+        finish_waiter = Waiter
     } = St,
     FileReports = case dict:find(FileName, Reports) of
         {ok, R} -> lists:sort(R);
@@ -194,21 +273,19 @@ format_report(St, FileName) ->
     NewFmtSt = lists:foldl(fun({Line, Col, Code, Msg}, Acc) ->
         Fmt:format(FileName, Line, Col, Code, Msg, Acc)
     end, FmtSt, FileReports),
-    {{value, FileName}, NewFiles} = queue:out(Files),
+    {{value, FileName}, NewStarted} = queue:out(Started),
     NewReports = dict:erase(FileName, Reports),
     NewFinished = sets:del_element(FileName, Finished),
-    NewCount = Count + length(FileReports),
-    case queue:is_empty(NewFiles) of
+    case queue:is_empty(NewStarted) of
         true when Waiter /= undefined ->
-            gen_server:reply(Waiter, {ok, NewCount}),
+            gen_server:reply(Waiter, {ok, FCount, ECount}),
             {stop, normal, St};
         _ ->
             NewSt = St#st{
-                files = NewFiles,
+                started = NewStarted,
                 reports = NewReports,
                 finished = NewFinished,
-                formatter_st = NewFmtSt,
-                count = NewCount
+                formatter_st = NewFmtSt
             },
             drain(NewSt)
     end.
