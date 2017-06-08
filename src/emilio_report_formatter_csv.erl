@@ -15,7 +15,7 @@
 
 -export([
     init/0,
-    terminate/1,
+    terminate/3,
     format/6
 ]).
 
@@ -25,7 +25,7 @@ init() ->
     {ok, nil}.
 
 
-terminate(_St) ->
+terminate(_FileCount, _ErrorCount, _St) ->
     ok.
 
 

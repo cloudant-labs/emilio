@@ -15,43 +15,22 @@
 
 -export([
     init/0,
-    terminate/1,
+    terminate/3,
     format/6
 ]).
 
 
--record(st, {
-    files = sets:new(),
-    counts = dict:new(),
-    total = 0
-}).
-
-
 init() ->
-    {ok, #st{}}.
+    {ok, dict:new()}.
 
 
-terminate(St) ->
-    #st{
-        files = Files,
-        counts = Counts,
-        total = Total
-    } = St,
-    io:format("Found ~b errors in ~b files~n", [Total, sets:size(Files)]),
+terminate(FileCount, ErrorCount, St) ->
+    io:format("Found ~b errors in ~b files~n", [ErrorCount, FileCount]),
     io:format(" Code :  Count~n", []),
     lists:foreach(fun({Code, Count}) ->
         io:format("  ~3b : ~6b~n", [Code, Count])
-    end, lists:sort(dict:to_list(Counts))).
+    end, lists:sort(dict:to_list(St))).
 
 
-format(FileName, _Line, _Col, Code, _Msg, St) ->
-    #st{
-        files = Files,
-        counts = Counts,
-        total = Total
-    } = St,
-    St#st{
-        files = sets:add_element(FileName, Files),
-        counts = dict:update_counter(Code, 1, Counts),
-        total = Total + 1
-    }.
+format(_FileName, _Line, _Col, Code, _Msg, St) ->
+    dict:update_counter(Code, 1, St).

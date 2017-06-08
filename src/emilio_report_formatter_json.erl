@@ -15,7 +15,7 @@
 
 -export([
     init/0,
-    terminate/1,
+    terminate/3,
     format/6
 ]).
 
@@ -30,7 +30,7 @@ init() ->
     {ok, #st{}}.
 
 
-terminate(St) ->
+terminate(_FileCount, _ErrorCount, St) ->
     dump_file(St).
 
 

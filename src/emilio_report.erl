@@ -90,10 +90,12 @@ init(_) ->
 
 terminate(_Reason, St) ->
     #st{
+        file_count = FCount,
+        error_count = ECount,
         formatter = Fmt,
         formatter_st = FmtSt
     } = St,
-    Fmt:terminate(FmtSt).
+    Fmt:terminate(FCount, ECount, FmtSt).
 
 
 handle_call({queue, FileName}, From, #st{queue_waiter = undefined} = St0) ->
@@ -138,11 +140,11 @@ handle_call({update, FileName, Line, Col, Code, Msg}, _From, St) ->
 
 handle_call(wait, From, #st{finish_waiter = undefined} = St) ->
     #st{
-        files = Files,
+        started = Started,
         file_count = FCount,
         error_count = ECount
     } = St,
-    case queue:is_empty(Files) of
+    case queue:is_empty(Started) of
         true ->
             gen_server:reply(From, {ok, FCount, ECount}),
             {stop, normal, St};
@@ -276,17 +278,17 @@ format_report(St, FileName) ->
     {{value, FileName}, NewStarted} = queue:out(Started),
     NewReports = dict:erase(FileName, Reports),
     NewFinished = sets:del_element(FileName, Finished),
+    NewSt = St#st{
+        started = NewStarted,
+        reports = NewReports,
+        finished = NewFinished,
+        formatter_st = NewFmtSt
+    },
     case queue:is_empty(NewStarted) of
         true when Waiter /= undefined ->
             gen_server:reply(Waiter, {ok, FCount, ECount}),
-            {stop, normal, St};
+            {stop, normal, NewSt};
         _ ->
-            NewSt = St#st{
-                started = NewStarted,
-                reports = NewReports,
-                finished = NewFinished,
-                formatter_st = NewFmtSt
-            },
             drain(NewSt)
     end.
 
