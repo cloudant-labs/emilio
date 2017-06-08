@@ -25,6 +25,7 @@ Implemented Checks
 
 * 901 Unscanable source
 * 902 Unparseable form
+* 903 Internal error
 
 To Implement
 ---
@@ -55,12 +56,14 @@ To Implement
   * 420 no private functions mixed with exported functions
   * 421 function order matches export order
 
-* 6xx
-  * 601 source file missing Apache ASLv2 license
+* 6xx Anti-patterns
+  * 601 _Variable used
 
 * 7xx logical analysis?
   * 701 case statement with single clause?
 
+* 8xx
+  * 801 source file missing Apache ASLv2 license
 
 Notes
 ---
