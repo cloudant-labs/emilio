@@ -1074,7 +1074,7 @@ build_typed_attribute({atom,Aa,Attr},_) ->
         record -> error_bad_decl(Aa, record);
         type   -> error_bad_decl(Aa, type);
 	opaque -> error_bad_decl(Aa, opaque);
-        _      -> io:format(standard_error, "BAD STUFF 1: ~p~n", [Attr]), ret_err(Aa, "bad attribute")
+        _      -> ret_err(Aa, "bad attribute")
     end.
 
 build_type_spec({Kind,Aa}, {SpecFun, TypeSpecs})
@@ -1205,7 +1205,7 @@ build_attribute({atom,Aa,Attr}, Val) ->
 	[Expr0] ->
 	    Expr = attribute_farity(Expr0),
 	    {attribute,Aa,Attr,term(Expr)};
-	_Other -> io:format(standard_error, "BAD STUFF 2: ~p~n", [Attr]), ret_err(Aa, "bad attribute")
+	_Other -> ret_err(Aa, "bad attribute")
     end.
 
 var_list({cons,_Ac,{var,_,V},Tail}) ->
@@ -1262,7 +1262,7 @@ record_fields([]) -> [].
 
 term(Expr) ->
     try normalise(Expr)
-    catch _:_R -> io:format(standard_error, "BAD STUFF 3: ~p~n", [Expr]), ret_err(?anno(Expr), "bad attribute")
+    catch _:_R -> ret_err(?anno(Expr), "bad attribute")
     end.
 
 %% build_function([Clause]) -> {function,Anno,Name,Arity,[Clause]}
