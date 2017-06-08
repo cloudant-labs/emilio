@@ -65,7 +65,7 @@ store(FileName, Module, Anno, Code, Arg) ->
 
 
 finish(FileName) ->
-    gen_server:call(?MODULE, {finish, FileName}).
+    gen_server:call(?MODULE, {finish, FileName}, infinity).
 
 
 wait() ->
