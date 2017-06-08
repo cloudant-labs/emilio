@@ -82,6 +82,11 @@ check_long(MaxLength, StartCol, Text) ->
 
 is_long_line(MaxLength, Line) ->
     case lists:last(Line) of
+        {atom, Anno, Name} ->
+            % Multiline atoms are possible if not totes
+            % icky.
+            check_multiline_string(MaxLength, Anno, atom_to_list(Name)),
+            false;
         {string, Anno, Text} ->
             % Multiline strings show up as the last token
             % of the line they started on. Since we have
