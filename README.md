@@ -34,27 +34,27 @@ To Implement
 * 124 indentation does not increase two levels with prefixed operator
 * 130 exports not indented correctly
 
-* 221 spaces around operators
-* 230 no spaces before commas
-* 231 no spaces before semicolons
-* 232 no spaces before dot
-* 234 no spaces after `{[(`
-* 235 no spaces before `)]}`
+* 221 no spaces around operators
+* 230 space before commas
+* 231 space before semicolons
+* 232 space before dot
+* 234 space after `{[(`
+* 235 space before `)]}`
 
 * 3xx blank lines
-  * 301 two blank lines between different attributes
-  * 302 one blank line between same attribute
-  * 303 one or zero blank lines between export functions
-  * 310 two blank lines between functions
-  * 311 zero or one blank line between function clauses
-  * 312 same number of blank lines between function clauses
+  * 301 not two blank lines between different attributes
+  * 302 not one blank line between same attribute
+  * 303 not one or zero blank lines between export functions
+  * 310 not two blank lines between functions
+  * 311 not zero or one blank line between function clauses
+  * 312 mixed number of blank lines between function clauses
 
 * 4xx import/export
-  * 401 No imports used
-  * 410 exports grouped correctly
-  * 411 gen behaviors in second group
-  * 420 no private functions mixed with exported functions
-  * 421 function order matches export order
+  * 401 imports used
+  * 410 exports grouped incorrectly
+  * 411 second group not gen behavior
+  * 420 private functions mixed with exported functions
+  * 421 function order does not match export order
 
 * 6xx Anti-patterns
   * 601 _Variable used
@@ -64,15 +64,6 @@ To Implement
 
 * 8xx
   * 801 source file missing Apache ASLv2 license
-
-Notes
----
-
-* 901 - Emilio uses a custom parser so that it doesn't have to expand
-        macros. This means that there are cases when a macro that rewrites
-        source forms in a way that emilio is unable to parse the unexpanded
-        source code. For now this is acceptable as it doesn't happen
-        that often but it may be something to figure out later.
 
 
 Adding a Check
