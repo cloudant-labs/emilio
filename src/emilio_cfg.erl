@@ -21,11 +21,8 @@
 
 -define(TABLE, emilio_config).
 
--define(IGNORE_OPTS, [
-    help
-]).
-
 -define(VALIDATORS, [
+    {list, fun is_list/1},
     {pos_integer, fun pos_integer/1},
     {file, fun file/1},
     {formatter, fun formatter/1}
@@ -61,18 +58,38 @@ get(Name) ->
 compile(BaseConfig, FileConfig, Opts) ->
     KVs1 = [{K, V} || {K, _, V, _} <- BaseConfig],
     KVs2 = lists:foldl(fun({K, V}, Acc) ->
-        lists:keystore(K, 1, Acc, {K, V})
+        update(K, V, Acc)
     end, KVs1, FileConfig),
     KVs3 = lists:foldl(fun({K, V}, Acc) ->
-        case lists:member(K, ?IGNORE_OPTS) of
-            true ->
-                Acc;
-            false ->
-                lists:keystore(K, 1, Acc, {K, V})
-        end
+        update(K, V, Acc)
     end, KVs2, Opts),
     lists:foreach(fun({K, V}) -> validate(K, V, BaseConfig) end, KVs3),
     lists:foreach(fun({K, V}) -> ets:insert(?TABLE, {K, V}) end, KVs3).
+
+
+update(config, _, Config) ->
+    Config;
+
+update(help, _, Config) ->
+    Config;
+
+update(ignore, [Pattern | _] = Patterns, Config) when is_list(Pattern) ->
+    lists:foldl(fun(P, Acc) ->
+        update(ignore, P, Acc)
+    end, Config, Patterns);
+
+update(ignore, Pattern, Config) ->
+    {ignore, Curr} = lists:keyfind(ignore, 1, Config),
+    {ok, Compiled} = try
+        glob:compile(Pattern)
+    catch _:_ ->
+        emilio_log:error("Invalid ignore pattern: ~p~n", [Pattern]),
+        emilio_util:shutdown(1)
+    end,
+    lists:keystore(ignore, 1, Config, {ignore, [Compiled | Curr]});
+
+update(Name, Value, Config) ->
+    lists:keystore(Name, 1, Config, {Name, Value}).
 
 
 validate(K, V, BaseConfig) ->

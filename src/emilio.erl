@@ -41,6 +41,13 @@
         "The config file to use [default: emilio.cfg]"
     },
     {
+        ignore,
+        $i,
+        "ignore",
+        'string',
+        "Ignore any file path matching the specified glob"
+    },
+    {
         jobs,
         $j,
         "jobs",
@@ -105,16 +112,25 @@ process([Path | Rest], Jobs) ->
 
 
 process_file(FileName, Jobs) ->
-    JobCount = emilio_cfg:get(jobs),
-    case length(Jobs) < JobCount of
-        true when JobCount == 1 ->
-            process_file(FileName),
-            Jobs;
+    Ignores = emilio_cfg:get(ignore),
+    ShouldIgnore = lists:foldl(fun(Pattern, Acc) ->
+        Acc orelse glob:matches(FileName, Pattern)
+    end, false, Ignores),
+    case ShouldIgnore of
         true ->
-            [{start_job(FileName), FileName} | Jobs];
+            Jobs;
         false ->
-            NewJobs = wait_for_job(Jobs),
-            process_file(FileName, NewJobs)
+            JobCount = emilio_cfg:get(jobs),
+            case length(Jobs) < JobCount of
+                true when JobCount == 1 ->
+                    process_file(FileName),
+                    Jobs;
+                true ->
+                    [{start_job(FileName), FileName} | Jobs];
+                false ->
+                    NewJobs = wait_for_job(Jobs),
+                    process_file(FileName, NewJobs)
+            end
     end.
 
 
