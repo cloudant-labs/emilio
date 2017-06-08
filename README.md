@@ -23,7 +23,8 @@ Implemented Checks
 
 * 501 line longer than 80 characters
 
-* 901 Unparseable form
+* 901 Unscanable source
+* 902 Unparseable form
 
 To Implement
 ---

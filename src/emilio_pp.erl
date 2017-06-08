@@ -15,6 +15,7 @@
 
 -export([
     file/1,
+    codes/0,
     format_error/2
 ]).
 
@@ -27,24 +28,39 @@
 
 file(FilePath) ->
     {ok, Data} = file:read_file(FilePath),
-    {ok, AllTokens, _} = emilio_erl_scan:string(
-            binary_to_list(Data),
-            {1, 1},
-            ?SCAN_OPTS
-        ),
-    Reverted = revert_annos(AllTokens),
-    MacroedTokens = macroize(Reverted),
-    ReDefinedTokens = process_define_args(MacroedTokens),
-    {CodeTokens, _NonCodeTokens} = split_code(ReDefinedTokens),
-    Forms = parse_forms(CodeTokens, []),
-    Linearized = lists:flatmap(fun linearize/1, Forms),
-    Rewhitespaced = rewhitespace(ReDefinedTokens),
-    Reinserted = reinsert_tokens(Rewhitespaced, Linearized),
-    DeTexted = detextify(Reinserted),
-    group_lines(DeTexted).
+    DataList = binary_to_list(Data),
+    case emilio_erl_scan:string(DataList, {1, 1}, ?SCAN_OPTS) of
+        {ok, AllTokens, _} ->
+            Reverted = revert_annos(AllTokens),
+            MacroedTokens = macroize(Reverted),
+            ReDefinedTokens = process_define_args(MacroedTokens),
+            {CodeTokens, _NonCodeTokens} = split_code(ReDefinedTokens),
+            Forms = parse_forms(CodeTokens, []),
+            Linearized = lists:flatmap(fun linearize/1, Forms),
+            Rewhitespaced = rewhitespace(ReDefinedTokens),
+            Reinserted = reinsert_tokens(Rewhitespaced, Linearized),
+            DeTexted = detextify(Reinserted),
+            group_lines(DeTexted);
+        {error, {Loc, Module, Error}, _} ->
+            Anno = case Loc of
+                {Line, Col} ->
+                    [{line, Line}, {column, Col}];
+                _ ->
+                    [{line, 0}, {column, 0}]
+            end,
+            Message = Module:format_error(Error),
+            ?EMILIO_REPORT(Anno, 901, Message),
+            []
+    end.
+
+
+codes() ->
+    [901, 902].
 
 
 format_error(901, Arg) ->
+    io_lib:format("Unable to scan source: ~s", [Arg]);
+format_error(902, Arg) ->
     io_lib:format("Unable to parse form: ~s", [Arg]).
 
 
@@ -135,7 +151,6 @@ replace_macro_args([{white_space, _, _} = Token | Rest]) ->
 replace_macro_args(Tokens) ->
     Tokens.
 
-
 replace_macro_args([{'(', _} = Token | Rest], CloseStack, Arg) ->
     replace_macro_args(Rest, [')' | CloseStack], [Token | Arg]);
 
@@ -191,8 +206,17 @@ replace_macro_args([Token | Rest], CloseStack, Arg) ->
     % Anything else just goes into the current argument
     replace_macro_args(Rest, CloseStack, [Token | Arg]);
 
+replace_macro_args([], _CloseStack, [{dot, _} = Dot | RestArg]) ->
+    % We'll end up here if we had a macro definition that had
+    % unlanced openings for complex expressions. If it looks
+    % like we're in a define then we'll just go ahead and
+    % stringify the arg after removing the trailing right
+    % paren.
+    {Arg, Close} = unwind_close_paren(RestArg),
+    stringify_tokens(lists:reverse(Arg)) ++ Close ++ [Dot];
+
 replace_macro_args([], _CloseStack, _Arg) ->
-    throw({error, macro_args}).
+    erlang:error({error, macro_args}).
 
 
 macro_argify(Arg, Loc) ->
@@ -221,13 +245,36 @@ find_define([]) ->
     [];
 
 find_define([{atom, _, define} = Token | Rest]) ->
-    [Token] ++ replace_macro_args(Rest);
+    {DefineTokens, Tail} = find_dot(Rest),
+    [Token] ++ replace_macro_args(DefineTokens) ++ Tail;
 
 find_define([{white_space, _, _} = Token | Rest]) ->
     [Token] ++ find_define(Rest);
 
 find_define(Tokens) ->
     Tokens.
+
+
+find_dot([]) ->
+    erlang:error({error, unterminated_define});
+
+find_dot([{dot, _} = Dot | Rest]) ->
+    {[Dot], Rest};
+
+find_dot([Token | Rest]) ->
+    {Define, Tail} = find_dot(Rest),
+    {[Token | Define], Tail}.
+
+
+unwind_close_paren([{')', _} = Close | Rest]) ->
+    {Rest, [Close]};
+
+unwind_close_paren([{white_space, _, _} = WS | Rest]) ->
+    {Tail, Close} = unwind_close_paren(Rest),
+    {Tail, [WS | Close]};
+
+unwind_close_paren(_) ->
+    erlang:error({error, unterminated_define}).
 
 
 parse_forms([], Acc) ->
@@ -253,7 +300,7 @@ parse_forms(Tokens, Acc) ->
                         _ ->
                             [{line, 0}, {column, 0}]
                     end,
-                    ?EMILIO_REPORT(Anno, 901, Message),
+                    ?EMILIO_REPORT(Anno, 902, Message),
                     Start = element(2, hd(Form)),
                     End = element(2, lists:last(Form)),
                     parse_forms(Rest, [{discard, Start, End} | Acc])
@@ -333,7 +380,8 @@ linearize({attribute, Anno, SpecAttr, {{Name, Arity}, TypeList}})
     [{attribute, Anno, SpecAttr, {Name, Arity}, length(TypeList)}]
             ++ LinearTypes;
 
-linearize({attribute, Anno, SpecAttr, {{Mod, Name, Arity}, TypeList}}) ->
+linearize({attribute, Anno, SpecAttr, {{Mod, Name, Arity}, TypeList}})
+        when SpecAttr == 'spect'; SpecAttr == 'callback' ->
     LinearTypes = lists:flatmap(fun linearize_type/1, TypeList),
     [{attribute, Anno, SpecAttr, {Mod, Name, Arity}, length(TypeList)}]
             ++ LinearTypes;
@@ -353,9 +401,9 @@ linearize({discard, _, _} = Elem) ->
 
 
 linearize_type({ann_type, Anno, [AfAnno | SubTypes]}) ->
-    [{ann_type, Anno, length(SubTypes)}]
+    reposition([{ann_type, Anno, length(SubTypes)}]
             ++ linearize_type(AfAnno)
-            ++ lists:flatmap(fun linearize_type/1, SubTypes);
+            ++ lists:flatmap(fun linearize_type/1, SubTypes));
 
 linearize_type({type, Anno, binary, IntParams}) ->
     [{type, Anno, binary, length(IntParams)}]
@@ -373,73 +421,73 @@ linearize_type({type, Anno, 'fun', [{type, Anno, 'any'}, ReturnType]}) ->
 
 linearize_type({type, Anno, 'fun', FunctionType}) ->
     [{type, _, product, ArgTypes}, ReturnType] = FunctionType,
-    [{type, Anno, 'fun', length(ArgTypes)}]
+    reposition([{type, Anno, 'fun', length(ArgTypes)}]
             ++ lists:flatmap(fun linearize_type/1, ArgTypes)
-            ++ linearize_type(ReturnType);
+            ++ linearize_type(ReturnType));
 
 linearize_type({type, Anno, bounded_fun, [FunType, Constraints]}) ->
-    [{type, Anno, bounded_fun, length(Constraints)}]
+    reposition([{type, Anno, bounded_fun, length(Constraints)}]
             ++ linearize_type(FunType)
-            ++ lists:flatmap(fun linearize_type/1, Constraints);
+            ++ lists:flatmap(fun linearize_type/1, Constraints));
 
 linearize_type({type, Anno, constraint, [{_, _, is_subtype}, [Var, Type]]}) ->
-    [{type, Anno, constraint, is_subtype}]
+    reposition([{type, Anno, constraint, is_subtype}]
             ++ linearize_type(Var)
-            ++ linearize_type(Type);
+            ++ linearize_type(Type));
 
 linearize_type({type, Anno, range, IntTypes}) ->
-    [{type, Anno, range, length(IntTypes)}]
-            ++ lists:flatmap(fun linearize_type/1, IntTypes);
+    reposition([{type, Anno, range, length(IntTypes)}]
+            ++ lists:flatmap(fun linearize_type/1, IntTypes));
 
 linearize_type({type, Anno, map, any}) ->
     [{type, Anno, map}];
 
 linearize_type({type, Anno, map, AssocTypes}) ->
-    [{type, Anno, map, length(AssocTypes)}]
-            ++ lists:flatmap(fun linearize_type/1, AssocTypes);
+    reposition([{type, Anno, map, length(AssocTypes)}]
+            ++ lists:flatmap(fun linearize_type/1, AssocTypes));
 
 linearize_type({type, Anno, map_field_assoc, SubTypes}) ->
-    [{type, Anno, map_field_assoc, length(SubTypes)}]
-            ++ lists:flatmap(fun linearize_type/1, SubTypes);
+    reposition([{type, Anno, map_field_assoc, length(SubTypes)}]
+            ++ lists:flatmap(fun linearize_type/1, SubTypes));
 
 linearize_type({type, Anno, map_field_exact, SubTypes}) ->
-    [{type, Anno, map_field_exact, length(SubTypes)}]
-            ++ lists:flatmap(fun linearize_type/1, SubTypes);
+    reposition([{type, Anno, map_field_exact, length(SubTypes)}]
+            ++ lists:flatmap(fun linearize_type/1, SubTypes));
 
 linearize_type({type, Anno, 'record', [Name | FieldTypes]}) ->
-    [{type, Anno, 'record', Name, length(FieldTypes)}]
+    reposition([{type, Anno, 'record', Name, length(FieldTypes)}]
             ++ linearize_type(Name)
-            ++ lists:flatmap(fun linearize_type/1, FieldTypes);
+            ++ lists:flatmap(fun linearize_type/1, FieldTypes));
 
 linearize_type({type, Anno, field_type, [Name, Type]}) ->
-    [{type, Anno, field_type}]
+    reposition([{type, Anno, field_type}]
             ++ linearize_type(Name)
-            ++ linearize_type(Type);
+            ++ linearize_type(Type));
 
 linearize_type({remote_type, Anno, [Mod, TypeName, ArgTypes]}) ->
-    [{remote_type, Anno, length(ArgTypes)}]
+    reposition([{remote_type, Anno, length(ArgTypes)}]
             ++ linearize_type(Mod)
             ++ linearize_type(TypeName)
-            ++ lists:flatmap(fun linearize_type/1, ArgTypes);
+            ++ lists:flatmap(fun linearize_type/1, ArgTypes));
 
 linearize_type({type, Anno, tuple, any}) ->
     [{type, Anno, tuple}];
 
 linearize_type({type, Anno, tuple, SubTypes}) ->
-    [{type, Anno, tupl, length(SubTypes)}]
-            ++ lists:flatmap(fun linearize_type/1, SubTypes);
+    reposition([{type, Anno, tupl, length(SubTypes)}]
+            ++ lists:flatmap(fun linearize_type/1, SubTypes));
 
 linearize_type({type, Anno, union, SubTypes}) ->
-    [{type, Anno, union, length(SubTypes)}]
-            ++ lists:flatmap(fun linearize_type/1, SubTypes);
+    reposition([{type, Anno, union, length(SubTypes)}]
+            ++ lists:flatmap(fun linearize_type/1, SubTypes));
 
 linearize_type({user_type, Anno, TypeName, SubTypes}) ->
-    [{user_type, Anno, TypeName, length(SubTypes)}]
-            ++ lists:flatmap(fun linearize_type/1, SubTypes);
+    reposition([{user_type, Anno, TypeName, length(SubTypes)}]
+            ++ lists:flatmap(fun linearize_type/1, SubTypes));
 
 linearize_type({type, Anno, TypeName, SubTypes}) ->
-    [{type, Anno, TypeName, length(SubTypes)}]
-            ++ lists:flatmap(fun linearize_type/1, SubTypes);
+    reposition([{type, Anno, TypeName, length(SubTypes)}]
+            ++ lists:flatmap(fun linearize_type/1, SubTypes));
 
 linearize_type(Else) ->
     linearize_expr(Else).
@@ -481,7 +529,7 @@ linearize_expr({nil, Anno}) ->
 linearize_expr({cons, Anno, Head, Tail}) ->
     LinearHead = linearize_expr(Head),
     LinearTail = linearize_expr(Tail),
-    [{cons, Anno}] ++ LinearHead ++ LinearTail;
+    reposition([{cons, Anno}] ++ LinearHead ++ LinearTail);
 
 linearize_expr({bin, Anno, Elems}) ->
     LinearElems = lists:flatmap(fun linearize_expr/1, Elems),
@@ -505,25 +553,25 @@ linearize_expr({op, Anno, Op, Right}) ->
 
 linearize_expr({record, Anno, Name, Fields}) ->
     LinearFields = lists:flatmap(fun linearize_expr/1, Fields),
-    [{record, Anno, Name, length(Fields)}] ++ LinearFields;
+    reposition([{record, Anno, Name, length(Fields)}] ++ LinearFields);
 
 linearize_expr({record, Anno, Expr, Name, Fields}) ->
     LinearExpr = linearize_expr(Expr),
     LinearFields = lists:flatmap(fun linearize_expr/1, Fields),
-    [{record_update, Anno, Name, length(Fields)}]
+    reposition([{record_update, Anno, Name, length(Fields)}]
             ++ LinearExpr
-            ++ LinearFields;
+            ++ LinearFields);
 
 linearize_expr({record_index, _Anno, _Name, _Field} = Elem) ->
     [Elem];
 
 linearize_expr({record_field, Anno, Name, Expr}) ->
     LinearExpr = linearize_expr(Expr),
-    [{record_field, Anno, Name}] ++ LinearExpr;
+    reposition([{record_field, Anno, Name}] ++ LinearExpr);
 
 linearize_expr({record_field, Anno, Expr, Name, Field}) ->
     LinearExpr = linearize_expr(Expr),
-    [{record_field, Anno, Name}] ++ LinearExpr ++ [Field];
+    reposition([{record_field, Anno, Name}] ++ LinearExpr ++ [Field]);
 
 linearize_expr({map, Anno, Assocs}) ->
     LinearAssocs = lists:flatmap(fun linearize_expr/1, Assocs),
@@ -532,17 +580,19 @@ linearize_expr({map, Anno, Assocs}) ->
 linearize_expr({map, Anno, Expr, Assocs}) ->
     LinearExpr = linearize_expr(Expr),
     LinearAssocs = lists:flatmap(fun linearize_expr/1, Assocs),
-    [{map_update, Anno, length(Assocs)}] ++ LinearExpr ++ LinearAssocs;
+    reposition([{map_update, Anno, length(Assocs)}]
+            ++ LinearExpr
+            ++ LinearAssocs);
 
 linearize_expr({map_field_assoc, Anno, Key, Val}) ->
     LinearKey = linearize_expr(Key),
     LinearVal = linearize_expr(Val),
-    [{map_field_assoc, Anno}] ++ LinearKey ++ LinearVal;
+    reposition([{map_field_assoc, Anno}] ++ LinearKey ++ LinearVal);
 
 linearize_expr({map_field_exact, Anno, Key, Val}) ->
     LinearKey = linearize_expr(Key),
     LinearVal = linearize_expr(Val),
-    [{map_field_exact, Anno}] ++ LinearKey ++ LinearVal;
+    reposition([{map_field_exact, Anno}] ++ LinearKey ++ LinearVal);
 
 linearize_expr({'catch', Anno, Expr}) ->
     LinearExpr = linearize_expr(Expr),
@@ -552,27 +602,29 @@ linearize_expr({call, Anno, {remote, Anno, Mod, Fun}, Args}) ->
     LinearMod = linearize_expr(Mod),
     LinearFun = linearize_expr(Fun),
     LinearArgs = lists:flatmap(fun linearize_expr/1, Args),
-    CallAnno = set_earliest(Anno, LinearMod),
-    [{call_remote, CallAnno, length(Args)}]
+    reposition([{call_remote, Anno, length(Args)}]
             ++ LinearMod
             ++ LinearFun
-            ++ LinearArgs;
+            ++ LinearArgs);
 
 linearize_expr({call, Anno, Fun, Args}) ->
     LinearFun = linearize_expr(Fun),
     LinearArgs = lists:flatmap(fun linearize_expr/1, Args),
-    CallAnno = set_earliest(Anno, LinearFun),
-    [{call, CallAnno, length(Args)}] ++ LinearFun ++ LinearArgs;
+    reposition([{call, Anno, length(Args)}] ++ LinearFun ++ LinearArgs);
 
 linearize_expr({lc, Anno, Template, Qualifiers}) ->
     LinearTemplate = linearize_expr(Template),
     LinearQualifiers = lists:flatmap(fun linearize_expr/1, Qualifiers),
-    [{lc, Anno, length(Qualifiers)}] ++ LinearTemplate ++ LinearQualifiers;
+    reposition([{lc, Anno, length(Qualifiers)}]
+            ++ LinearTemplate
+            ++ LinearQualifiers);
 
 linearize_expr({bc, Anno, Template, Qualifiers}) ->
     LinearTemplate = linearize_expr(Template),
     LinearQualifiers = lists:flatmap(fun linearize_expr/1, Qualifiers),
-    [{bc, Anno, length(Qualifiers)}] ++ LinearTemplate ++ LinearQualifiers;
+    reposition([{bc, Anno, length(Qualifiers)}]
+            ++ LinearTemplate
+            ++ LinearQualifiers);
 
 linearize_expr({generate, Anno, Pattern, Expr}) ->
     LinearPattern = linearize_expr(Pattern),
@@ -701,11 +753,10 @@ linearize_clause(Type, {clause, Anno, Patterns, Guards, Body}) ->
     LinearPatterns = lists:flatmap(fun linearize_expr/1, Patterns),
     LinearGuards = linearize_guards(Anno, Guards),
     LinearBody = lists:flatmap(fun linearize_expr/1, Body),
-    ClauseAnno = set_earliest(Anno, LinearPatterns),
-    [{Type, ClauseAnno, length(Patterns), length(Guards)}]
+    reposition([{Type, Anno, length(Patterns), length(Guards)}]
             ++ LinearPatterns
             ++ LinearGuards
-            ++ LinearBody.
+            ++ LinearBody).
 
 
 linearize_guards(_, []) ->
@@ -729,17 +780,18 @@ linearize_guards(Guards) ->
     end, Guards).
 
 
-set_earliest(Anno, []) ->
-    Anno;
+reposition([Token]) ->
+    [Token];
 
-set_earliest(Anno, [Token | _]) ->
-    AnnoLoc = emilio_anno:lc(Anno),
-    TokenLoc = emilio_anno:lc(Token),
-    case TokenLoc < AnnoLoc of
-        false ->
-            Anno;
+reposition([Curr, Next | Rest] = Tokens) ->
+    CurrLoc = emilio_anno:lc(Curr),
+    NextLoc = emilio_anno:lc(Next),
+    case CurrLoc < NextLoc of
         true ->
-            emilio_anno:set_location(Anno, TokenLoc)
+            Tokens;
+        false ->
+            NewAnno = emilio_anno:set_location(Curr, Next),
+            [setelement(2, Curr, NewAnno), Next | Rest]
     end.
 
 
