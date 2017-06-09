@@ -956,6 +956,9 @@ is_code({comment, _, _}) -> false;
 is_code(_) -> true.
 
 
+stringify_tokens([]) ->
+    [];
+
 stringify_tokens(Tokens) ->
     % Convert arg tokens to a string
     TextList = lists:foldl(fun
