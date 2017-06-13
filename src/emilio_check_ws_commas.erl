@@ -10,7 +10,7 @@
 % License for the specific language governing permissions and limitations under
 % the License.
 
--module(emilio_check_ws_space_after_comma).
+-module(emilio_check_ws_commas).
 
 -export([
     codes/0,
@@ -24,13 +24,17 @@
 
 
 codes() ->
-    [222].
+    [221, 222].
 
 
+explain(221) ->
+    "There should be no whitespace before a comma";
 explain(222) ->
     "Commas should be followed by a single space or a newline".
 
 
+format_error(221, _) ->
+    "comma preceded by whitespace";
 format_error(222, _) ->
     "comma missing a trailing single space or newline".
 
@@ -40,6 +44,16 @@ run(Lines) ->
 
 
 check(Anno, {',', _}, Ctx) ->
+    FoldFun = fun
+        ({white_space, _, _}, _, _) ->
+            ?EMILIO_REPORT(Anno, 221),
+            {stop, ok};
+        ({sep, _}, _, _) ->
+            {continue, nil};
+        (_, _, _) ->
+            {stop, ok}
+    end,
+    emilio_lib:iter_rev(Ctx, FoldFun, nil),
     case emilio_lib:next_token(Ctx) of
         {'white_space', _, " "} -> ok;
         {'white_space', _, "\n"} -> ok;

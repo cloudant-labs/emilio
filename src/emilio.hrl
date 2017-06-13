@@ -14,7 +14,7 @@
     emilio_check_line_length,
     emilio_check_ws_spaces_only,
     emilio_check_ws_file_newline,
-    emilio_check_ws_space_after_comma,
+    emilio_check_ws_commas,
     emilio_check_indents_counts,
     emilio_check_indents,
     emilio_check_indents_match,

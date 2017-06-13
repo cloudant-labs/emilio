@@ -22,7 +22,10 @@ Implemented Checks
 
 * 210 file does not end with a single newline
 
-* 222 spaces after commas
+* 221 white space before comma
+* 222 no spaces after comma
+
+* 240 white space before attribute declaration
 
 * 501 line longer than 80 characters
 
@@ -33,14 +36,11 @@ Implemented Checks
 To Implement
 ---
 
-* 221 no spaces around operators
 * 230 space before commas
 * 231 space before semicolons
 * 232 space before dot
 * 234 space after `{[(`
 * 235 space before `)]}`
-
-* 240 white space before attribute declaration
 
 * 3xx blank lines
   * 301 not two blank lines between different attributes

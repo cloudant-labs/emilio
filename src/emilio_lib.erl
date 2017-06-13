@@ -29,6 +29,9 @@
     find_ref_rev/2,
     find_ref_rev/3,
 
+    iter_fwd/3,
+    iter_rev/3,
+
     indent_level/1,
     is_blank_line/1
 ]).
@@ -153,6 +156,68 @@ find_ref_rev(Ctx, Ref, Name) when is_atom(Name) ->
     find_ref_rev(Ctx, Ref, [Name]).
 
 
+iter_fwd(#ctx{} = Ctx, Fun, Acc) ->
+    case Ctx of
+        #ctx{rest_tokens = [Token | Rest]} ->
+            CurrCtx = Ctx#ctx{
+                rest_tokens = Rest
+            },
+            case Fun(Token, CurrCtx, Acc) of
+                {stop, NewAcc} ->
+                    NewAcc;
+                {continue, NewAcc} ->
+                    NextCtx = Ctx#ctx{
+                        prev_tokens = [Token | Ctx#ctx.prev_tokens],
+                        rest_tokens = Rest
+                    },
+                    iter_fwd(NextCtx, Fun, NewAcc)
+            end;
+        #ctx{rest_tokens = [], rest_lines = [Line | Rest]} ->
+            NextCtx = Ctx#ctx{
+                prev_lines = [Ctx#ctx.curr_line | Ctx#ctx.prev_lines],
+                curr_line = Line,
+                rest_lines = Rest,
+
+                prev_tokens = [],
+                rest_tokens = Line
+            },
+            iter_fwd(NextCtx, Fun, Acc);
+        #ctx{rest_tokens = [], rest_lines = []} ->
+            Acc
+    end.
+
+
+iter_rev(Ctx, Fun, Acc) ->
+    case Ctx of
+        #ctx{prev_tokens = [Token | Rest]} ->
+            CurrCtx = Ctx#ctx{
+                prev_tokens = Rest
+            },
+            case Fun(Token, CurrCtx, Acc) of
+                {stop, NewAcc} ->
+                    NewAcc;
+                {continue, NewAcc} ->
+                    NextCtx = Ctx#ctx{
+                        prev_tokens = Rest,
+                        rest_tokens = [Token | Ctx#ctx.rest_tokens]
+                    },
+                    iter_rev(NextCtx, Fun, NewAcc)
+            end;
+        #ctx{prev_tokens = [], prev_lines = [Line | Rest]} ->
+            NextCtx = Ctx#ctx{
+                prev_lines = Rest,
+                curr_line = Line,
+                rest_lines = [Ctx#ctx.curr_line | Ctx#ctx.rest_lines],
+
+                prev_tokens = lists:reverse(Line),
+                rest_tokens = []
+            },
+            iter_rev(NextCtx, Fun, Acc);
+        #ctx{prev_tokens = [], prev_lines = []} ->
+            Acc
+    end.
+
+
 indent_level(Line) ->
     indent_level(Line, []).
 
@@ -216,68 +281,6 @@ find_ref(IterFun, Ctx, Ref, Names) ->
         end
     end,
     IterFun(Ctx, Fun, undefined).
-
-
-iter_fwd(#ctx{} = Ctx, Fun, Acc) ->
-    case Ctx of
-        #ctx{rest_tokens = [Token | Rest]} ->
-            CurrCtx = Ctx#ctx{
-                rest_tokens = Rest
-            },
-            case Fun(Token, CurrCtx, Acc) of
-                {stop, NewAcc} ->
-                    NewAcc;
-                {continue, NewAcc} ->
-                    NextCtx = Ctx#ctx{
-                        prev_tokens = [Token | Ctx#ctx.prev_tokens],
-                        rest_tokens = Rest
-                    },
-                    iter_fwd(NextCtx, Fun, NewAcc)
-            end;
-        #ctx{rest_tokens = [], rest_lines = [Line | Rest]} ->
-            NextCtx = Ctx#ctx{
-                prev_lines = [Ctx#ctx.curr_line | Ctx#ctx.prev_lines],
-                curr_line = Line,
-                rest_lines = Rest,
-
-                prev_tokens = [],
-                rest_tokens = Line
-            },
-            iter_fwd(NextCtx, Fun, Acc);
-        #ctx{rest_tokens = [], rest_lines = []} ->
-            Acc
-    end.
-
-
-iter_rev(Ctx, Fun, Acc) ->
-    case Ctx of
-        #ctx{prev_tokens = [Token | Rest]} ->
-            CurrCtx = Ctx#ctx{
-                prev_tokens = Rest
-            },
-            case Fun(Token, CurrCtx, Acc) of
-                {stop, NewAcc} ->
-                    NewAcc;
-                {continue, NewAcc} ->
-                    NextCtx = Ctx#ctx{
-                        prev_tokens = Rest,
-                        rest_tokens = [Token | Ctx#ctx.rest_tokens]
-                    },
-                    iter_rev(NextCtx, Fun, NewAcc)
-            end;
-        #ctx{prev_tokens = [], prev_lines = [Line | Rest]} ->
-            NextCtx = Ctx#ctx{
-                prev_lines = Rest,
-                curr_line = Line,
-                rest_lines = [Ctx#ctx.curr_line | Ctx#ctx.rest_lines],
-
-                prev_tokens = lists:reverse(Line),
-                rest_tokens = []
-            },
-            iter_rev(NextCtx, Fun, Acc);
-        #ctx{prev_tokens = [], prev_lines = []} ->
-            Acc
-    end.
 
 
 wrap_user_fun(UserFun) when is_function(UserFun, 2) ->
