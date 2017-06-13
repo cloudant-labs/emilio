@@ -13,6 +13,7 @@ Implemented Checks
 * 122 'when' token is not indented two levels
 * 123 indentation does not increase two levels after trailing operator
 * 124 indentation does not increase two levels with prefixed operator
+* 130 exports not indented correctly
 
 * 201 white space contains tabs
 * 202 white space contains form feed
@@ -32,14 +33,14 @@ Implemented Checks
 To Implement
 ---
 
-* 130 exports not indented correctly
-
 * 221 no spaces around operators
 * 230 space before commas
 * 231 space before semicolons
 * 232 space before dot
 * 234 space after `{[(`
 * 235 space before `)]}`
+
+* 240 white space before attribute declaration
 
 * 3xx blank lines
   * 301 not two blank lines between different attributes
