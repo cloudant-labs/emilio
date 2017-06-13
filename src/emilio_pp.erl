@@ -727,8 +727,8 @@ linearize_expr({'try', Anno, Body, Cases, Catches, After}, Depth) ->
         OfToken ++ LC
     end,
     LinearCatches = if Catches == [] -> []; true ->
-        LT =
-            linearize_clause_list(try_catch_clause, StartAnno, Catches, Depth),
+        Type = try_catch_clause,
+        LT = linearize_clause_list(Type, StartAnno, Catches, Depth),
         CatchToken ++ LT
     end,
     LinearAfter = if After == [] -> []; true ->
@@ -808,7 +808,7 @@ linearize_clause(Type, {clause, Anno, Patterns, Guards, Body}, Depth) ->
     LinearGuards = linearize_guards(Anno, Guards, Depth),
     LinearBody = linearize_expr_list(Body, Depth),
     ClauseToken =
-        set_depth({Type, Anno, length(Patterns), length(Guards)}, Depth),
+            set_depth({Type, Anno, length(Patterns), length(Guards)}, Depth),
     reposition([ClauseToken]
             ++ LinearPatterns
             ++ LinearGuards

@@ -19,7 +19,8 @@
     emilio_check_indents,
     emilio_check_indents_match,
     emilio_check_indents_clauses,
-    emilio_check_indents_when
+    emilio_check_indents_when,
+    emilio_check_indents_op2
 ]).
 
 

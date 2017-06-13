@@ -11,6 +11,8 @@ Implemented Checks
 * 120 indentation does not match for tokens
 * 121 indentation does not increase for clauses
 * 122 'when' token is not indented two levels
+* 123 indentation does not increase two levels after trailing operator
+* 124 indentation does not increase two levels with prefixed operator
 
 * 201 white space contains tabs
 * 202 white space contains form feed
@@ -30,8 +32,6 @@ Implemented Checks
 To Implement
 ---
 
-* 123 indentation does not increase two levels after trailing operator
-* 124 indentation does not increase two levels with prefixed operator
 * 130 exports not indented correctly
 
 * 221 no spaces around operators
