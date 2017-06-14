@@ -38,7 +38,8 @@ file(FilePath) ->
             Forms = parse_forms(CodeTokens, []),
             Linearized = lists:flatmap(fun linearize/1, Forms),
             Rewhitespaced = rewhitespace(ReDefinedTokens),
-            Reinserted = reinsert_tokens(Rewhitespaced, Linearized),
+            Coalesced = coalesce_whitespace(Rewhitespaced),
+            Reinserted = reinsert_tokens(Coalesced, Linearized),
             DeTexted = detextify(Reinserted),
             group_lines(DeTexted);
         {error, {Loc, Module, Error}, _} ->
@@ -915,6 +916,27 @@ break_dot_token({Line, Col}, [$., C]) ->
     DotTok = {dot, [{line, Line}, {column, Col}]},
     WsTok = {white_space, [{line, Line}, {column, Col + 1}], [C]},
     [DotTok, WsTok].
+
+
+coalesce_whitespace([]) ->
+    [];
+
+coalesce_whitespace([{white_space, Anno, Text} = Token | Rest]) ->
+    case lists:last(Text) of
+        $\n ->
+            [Token] ++ coalesce_whitespace(Rest);
+        _ ->
+            case Rest of
+                [{white_space, _, Append} | Tail] ->
+                    NewToken = {white_space, Anno, Text ++ Append},
+                    [NewToken] ++ coalesce_whitespace(Tail);
+                _ ->
+                    [Token] ++ coalesce_whitespace(Rest)
+            end
+    end;
+
+coalesce_whitespace([Token | Rest]) ->
+    [Token] ++ coalesce_whitespace(Rest).
 
 
 reinsert_tokens([], Nodes) ->
