@@ -31,6 +31,10 @@ Implemented Checks
 * 230 whitespace after (
 * 231 whitespace before )
 
+* 240 whitespace after [
+* 241 whitespace before ]
+* 242 no whitespace before |
+* 243 no whitespace after |
 
 * 501 line longer than 80 characters
 
