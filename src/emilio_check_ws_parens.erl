@@ -66,14 +66,10 @@ ws_before(Ctx) ->
     % its own line after closing a multi-line
     % argument list.
     case get_prev(Ctx) of
-        {white_space, _, _} = Token ->
-            CurrLine = emilio_lib:curr_line(Ctx),
-            case Token == hd(CurrLine) of
-                true ->
-                    % closing paren on its own line
-                    false;
-                _ ->
-                    true
+        {white_space, Anno, _} ->
+            case emilio_lib:lc(Anno) of
+                {_, 1} -> false;
+                _ -> true
             end;
         _ ->
             false
