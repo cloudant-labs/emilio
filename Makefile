@@ -6,5 +6,8 @@ script:
 	@rebar compile escriptize
 
 
-check:
+check: script
 	./emilio -c emilio.config src/
+
+
+.PHONY: script
