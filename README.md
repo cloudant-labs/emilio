@@ -36,6 +36,9 @@ Implemented Checks
 * 242 no whitespace before |
 * 243 no whitespace after |
 
+* 250 whitespace after {
+* 251 whitespace before }
+
 * 501 line longer than 80 characters
 
 * 901 Unscanable source

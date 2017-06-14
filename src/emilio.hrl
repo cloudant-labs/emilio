@@ -25,7 +25,8 @@
     emilio_check_ws_attributes,
     emilio_check_ws_misc,
     emilio_check_ws_parens,
-    emilio_check_ws_lists
+    emilio_check_ws_lists,
+    emilio_check_ws_tuples
 ]).
 
 
