@@ -24,18 +24,18 @@
 
 
 codes() ->
-    [225, 226].
+    [223, 224].
 
 
-explain(225) ->
+explain(223) ->
     "There should be no whitespace before a semicolon";
-explain(226) ->
+explain(224) ->
     "There should be no whitespace before a dot".
 
 
-format_error(225, _) ->
+format_error(223, _) ->
     "semicolon preceded by whitespace";
-format_error(226, _) ->
+format_error(224, _) ->
     "dot preceded by whitespace".
 
 
@@ -55,9 +55,9 @@ check(Anno, Token, Ctx) ->
     end,
     case Token of
         {';', _} ->
-            emilio_lib:iter_rev(Ctx, FoldFun, 225);
+            emilio_lib:iter_rev(Ctx, FoldFun, 223);
         {dot, _} ->
-            emilio_lib:iter_rev(Ctx, FoldFun, 226);
+            emilio_lib:iter_rev(Ctx, FoldFun, 224);
         _ ->
             ok
     end.

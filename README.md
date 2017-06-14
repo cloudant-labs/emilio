@@ -24,8 +24,13 @@ Implemented Checks
 
 * 221 white space before comma
 * 222 no spaces after comma
+* 223 space before semicolons
+* 224 space before dot
+* 225 white space before attribute declaration
 
-* 240 white space before attribute declaration
+* 230 whitespace after (
+* 231 whitespace before )
+
 
 * 501 line longer than 80 characters
 
@@ -35,12 +40,6 @@ Implemented Checks
 
 To Implement
 ---
-
-* 230 space before commas
-* 231 space before semicolons
-* 232 space before dot
-* 234 space after `{[(`
-* 235 space before `)]}`
 
 * 3xx blank lines
   * 301 not two blank lines between different attributes

@@ -25,14 +25,14 @@
 
 
 codes() ->
-    [227].
+    [225].
 
 
-explain(227) ->
+explain(225) ->
     "attributes should start in the first column of the line".
 
 
-format_error(227, _) ->
+format_error(225, _) ->
     "attribute definition does not start at the first column of the line".
 
 
@@ -46,7 +46,7 @@ check(Anno, Token, _Ctx) when element(1, Token) == attribute ->
         {_, 2} -> % 2 because the hyphen is not included
             ok;
         _ ->
-            ?EMILIO_REPORT(Anno, 227)
+            ?EMILIO_REPORT(Anno, 225)
     end;
 
 check(_, _, _) ->

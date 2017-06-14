@@ -23,7 +23,8 @@
     emilio_check_indents_op2,
     emilio_check_indents_exports,
     emilio_check_ws_attributes,
-    emilio_check_ws_misc
+    emilio_check_ws_misc,
+    emilio_check_ws_parens
 ]).
 
 
