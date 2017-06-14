@@ -67,7 +67,7 @@ ws_before(Ctx) ->
     % argument list.
     case get_prev(Ctx) of
         {white_space, Anno, _} ->
-            case emilio_lib:lc(Anno) of
+            case emilio_anno:lc(Anno) of
                 {_, 1} -> false;
                 _ -> true
             end;
