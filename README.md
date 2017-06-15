@@ -39,6 +39,8 @@ Implemented Checks
 * 250 whitespace after {
 * 251 whitespace before }
 
+* 301 more than two blank lines at module level
+
 * 501 line longer than 80 characters
 
 * 901 Unscanable source
@@ -48,13 +50,10 @@ Implemented Checks
 To Implement
 ---
 
-* 3xx blank lines
-  * 301 not two blank lines between different attributes
-  * 302 not one blank line between same attribute
-  * 303 not one or zero blank lines between export functions
-  * 310 not two blank lines between functions
-  * 311 not zero or one blank line between function clauses
-  * 312 mixed number of blank lines between function clauses
+* 3xx module blank lines
+  * 302 not two blank lines between functions
+  * 310 more than one blank line between function clauses
+  * 311 mixed blank line count between function clauses
 
 * 4xx import/export
   * 401 imports used
@@ -80,3 +79,25 @@ To add a new check to emilio you'll need to first implement your check
 as a module. The existing `emilio_check_*` modules should provide
 decent guidance on the implementation. To include the check you should
 add the module name to the list in `emilio.hrl` so that its executed.
+
+
+Projects For Fuzz Testing
+---
+
+https://github.com/alpaca-lang/alpaca
+https://github.com/apache/couchdb
+https://github.com/basho/riak
+https://github.com/cloudant/porkrind
+https://github.com/elixir-lang/elixir
+https://github.com/emqtt/emqttd
+https://github.com/erlang/otp
+https://github.com/ferd/recon
+https://github.com/inaka/elvis
+https://github.com/leo-project/leofs
+https://github.com/manopapad/proper
+https://github.com/ninenines/cowboy
+https://github.com/ninenines/ranch
+https://github.com/processone/ejabberd
+https://github.com/rabbitmq/rabbitmq-server
+https://github.com/rvirding/lfe
+https://github.com/synrc/n2o

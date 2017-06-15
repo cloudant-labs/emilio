@@ -33,7 +33,11 @@
     iter_rev/3,
 
     indent_level/1,
-    is_blank_line/1
+    is_blank_line/1,
+
+    group_lines/1,
+
+    simplified_forms/1
 ]).
 
 
@@ -240,6 +244,38 @@ is_blank_line(Line) ->
     [] == lists:filter(FiltFun, Line).
 
 
+group_lines([]) ->
+    [];
+
+group_lines([Tok | Rest]) ->
+    group_lines(Rest, [Tok], []).
+
+
+group_lines([], [], GroupAcc) ->
+    lists:reverse(GroupAcc);
+
+group_lines([], Group, GroupAcc) ->
+    lists:reverse(GroupAcc, [lists:reverse(Group)]);
+
+group_lines([Token | RestTokens], [G | _] = Group, GroupAcc) ->
+    {TLine, _} = emilio_anno:lc(Token),
+    {GLine, _} = emilio_anno:lc(G),
+    case TLine > GLine of
+        true ->
+            NewGroupAcc = [lists:reverse(Group) | GroupAcc],
+            group_lines(RestTokens, [Token], NewGroupAcc);
+        false ->
+            group_lines(RestTokens, [Token | Group], GroupAcc)
+    end.
+
+
+simplified_forms(Lines) ->
+    Groups0 = split_at_dots(Lines),
+    Groups1 = lists:flatmap(fun split_group/1, Groups0),
+    Groups2 = lists:flatmap(fun simplify_form/1, Groups1),
+    group_new_lines(Groups2).
+
+
 traverse([], _, _) ->
     ok;
 
@@ -281,6 +317,152 @@ find_ref(IterFun, Ctx, Ref, Names) ->
         end
     end,
     IterFun(Ctx, Fun, undefined).
+
+
+split_at_dots([]) ->
+    [];
+
+% In case no tokens after the last dot
+split_at_dots([[] | Rest]) ->
+    split_at_dots(Rest);
+
+split_at_dots([Line | Rest]) ->
+    SplitFun = fun(Token) -> element(1, Token) /= dot end,
+    case lists:splitwith(SplitFun, Line) of
+        {Line, []} ->
+            case split_at_dots(Rest) of
+                [] ->
+                    [[Line]];
+                [Group | RestGroups] ->
+                    [[Line | Group] | RestGroups]
+            end;
+        {Prefix, [Dot | Tail]} ->
+            Groups = split_at_dots([Tail | Rest]),
+            [[Prefix ++ [Dot]] | Groups]
+    end.
+
+
+split_group(Group) ->
+    case lists:splitwith(fun has_no_code/1, Group) of
+        {[], []} ->
+            [];
+        {NonCode, []} ->
+            [NonCode];
+        {[], RestGroup} ->
+            [RestGroup];
+        {NonCode, RestGroup} ->
+            [NonCode, RestGroup]
+    end.
+
+
+has_no_code(Line) ->
+    IsNotCode = fun
+        ({white_space, _, _}) -> true;
+        ({comment, _, _}) -> true;
+        (_) -> false
+    end,
+    lists:all(IsNotCode, Line).
+
+
+simplify_form([{white_space, Anno, _}]) ->
+    [{new_line, Anno, 1}];
+
+simplify_form(Form) ->
+    {Comments, RestForm} = strip_comments(lists:flatten(Form)),
+    if Comments == [] -> []; true ->
+        group_comments(Comments)
+    end ++ if RestForm == [] -> []; true ->
+        [rewrite_form(RestForm)]
+    end.
+
+
+strip_comments([]) ->
+    {[], []};
+
+strip_comments([{comment, _, _} = C | Rest]) ->
+    {Comments, Tail} = strip_comments(Rest),
+    {[C | Comments], Tail};
+
+strip_comments([{white_space, _, _} = WS | Rest]) ->
+    {Comments, Tail} = strip_comments(Rest),
+    {[WS | Comments], Tail};
+
+strip_comments(Tail) ->
+    {[], Tail}.
+
+
+group_comments(Tokens) ->
+    Lines = group_lines(Tokens),
+    Simplified = lists:map(fun(Line) ->
+        case Line of
+            [{white_space, Anno, _}] ->
+                {new_line, Anno, 1};
+            _ ->
+                {comment, element(2, hd(Line))}
+        end
+    end, Lines),
+    NLGrouped = group_new_lines(Simplified),
+    Condensed = lists:foldl(fun(Line, Acc) ->
+        case Line of
+            {new_line, Anno, Count} ->
+                case Acc of
+                    [{comment, _} | _] ->
+                        % Account for the newline terminating
+                        % the comment
+                        [{new_line, Anno, Count + 1} | Acc];
+                    _ ->
+                        [{new_line, Anno, Count} | Acc]
+                end;
+            {comment, Anno} ->
+                case Acc of
+                    [{comment, _} | _] ->
+                        Acc;
+                    _ ->
+                        [{comment, Anno} | Acc]
+                end
+        end
+    end, [], NLGrouped),
+    lists:reverse(Condensed).
+
+
+rewrite_form([{'-', _}, {attribute, Anno, export} | Rest]) ->
+    FiltFun = fun(Token) -> element(1, Token) == export end,
+    Exports = lists:filter(FiltFun, Rest),
+    {attribute, Anno, export, Exports};
+
+rewrite_form([{'-', _}, Attr | _]) when element(1, Attr) == attribute ->
+    Attr;
+
+rewrite_form([Function | Body]) when element(1, Function) == function ->
+    Clauses = split_function_clauses(Body),
+    setelement(5, Function, Clauses).
+
+
+split_function_clauses([]) ->
+    [];
+
+split_function_clauses([{function_clause, Anno, _, _} | Rest]) ->
+    SplitFun = fun(Token) -> element(1, Token) /= function_clause end,
+    {ClauseBody, NextClause} = lists:splitwith(SplitFun, Rest),
+    RevBody = lists:reverse(ClauseBody),
+    {Comments, _RevClauseBody} =  strip_comments(RevBody),
+    Groups = group_comments(lists:reverse(Comments)),
+    [{function_clause, Anno, Groups}] ++ split_function_clauses(NextClause).
+
+
+group_new_lines([]) ->
+    [];
+
+group_new_lines([{new_line, Anno, C1} | Rest]) ->
+    case Rest of
+        [{new_line, _, C2} | Tail] ->
+            group_new_lines([{new_line, Anno, C1 + C2} | Tail]);
+        _ ->
+            [{new_line, Anno, C1}] ++ group_new_lines(Rest)
+    end;
+
+group_new_lines([Form | Rest]) ->
+    [Form] ++ group_new_lines(Rest).
 
 
 wrap_user_fun(UserFun) when is_function(UserFun, 2) ->

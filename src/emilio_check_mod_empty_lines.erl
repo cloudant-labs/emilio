@@ -10,7 +10,7 @@
 % License for the specific language governing permissions and limitations under
 % the License.
 
--module(emilio_check_ws_attributes).
+-module(emilio_check_mod_empty_lines).
 
 -export([
     codes/0,
@@ -24,29 +24,24 @@
 
 
 codes() ->
-    [225].
+    [301].
 
 
-explain(225) ->
-    "attributes should start in the first column of the line".
+explain(301) ->
+    "There should not be more than two consecutive empty lines".
 
 
-format_error(225, _) ->
-    "attribute definition does not start at the first column of the line".
+format_error(301, Count) ->
+    io_lib:format("found ~b consecutive empty lines", [Count]).
 
 
 run(Lines) ->
-    emilio_lib:foreach_token(fun check/3, Lines).
-
-
-check(Anno, Token, _Ctx) when element(1, Token) == attribute ->
-    Anno = element(2, Token),
-    case emilio_anno:lc(Anno) of
-        {_, 2} -> % 2 because the hyphen is not included
-            ok;
-        _ ->
-            ?EMILIO_REPORT(Anno, 225)
-    end;
-
-check(_, _, _) ->
-    ok.
+    Forms = emilio_lib:simplified_forms(Lines),
+    lists:foreach(fun(Form) ->
+        case Form of
+            {new_line, Anno, Count} when Count > 3 ->
+                ?EMILIO_REPORT(Anno, 301, Count - 1);
+            _ ->
+                ok
+        end
+    end, Forms).

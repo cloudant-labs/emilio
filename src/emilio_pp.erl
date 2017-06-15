@@ -41,7 +41,7 @@ file(FilePath) ->
             Coalesced = coalesce_whitespace(Rewhitespaced),
             Reinserted = reinsert_tokens(Coalesced, Linearized),
             DeTexted = detextify(Reinserted),
-            group_lines(DeTexted);
+            emilio_lib:group_lines(DeTexted);
         {error, {Loc, Module, Error}, _} ->
             Anno = case Loc of
                 {Line, Col} ->
@@ -1004,31 +1004,6 @@ detextify([Token | RestTokens]) ->
     NewAnno = lists:keydelete(text, 1, Anno),
     NewTok = setelement(2, Token, NewAnno),
     [NewTok] ++ detextify(RestTokens).
-
-
-group_lines([]) ->
-    [];
-
-group_lines([Tok | Rest]) ->
-    group_lines(Rest, [Tok], []).
-
-
-group_lines([], [], GroupAcc) ->
-    lists:reverse(GroupAcc);
-
-group_lines([], Group, GroupAcc) ->
-    lists:reverse(GroupAcc, [lists:reverse(Group)]);
-
-group_lines([Token | RestTokens], [G | _] = Group, GroupAcc) ->
-    {TLine, _} = emilio_anno:lc(Token),
-    {GLine, _} = emilio_anno:lc(G),
-    case TLine > GLine of
-        true ->
-            NewGroupAcc = [lists:reverse(Group) | GroupAcc],
-            group_lines(RestTokens, [Token], NewGroupAcc);
-        false ->
-            group_lines(RestTokens, [Token | Group], GroupAcc)
-    end.
 
 
 split_anno(Anno) ->
