@@ -24,19 +24,31 @@
 
 
 codes() ->
-    [301].
+    [301, 302].
 
 
 explain(301) ->
-    "There should not be more than two consecutive empty lines".
+    "There should not be more than two consecutive empty lines";
+explain(302) ->
+    "There should be two empty lines betwen functions".
 
 
 format_error(301, Count) ->
-    io_lib:format("found ~b consecutive empty lines", [Count]).
+    io_lib:format("found ~b consecutive empty lines", [Count]);
+format_error(302, Count) when Count < 2 ->
+    io_lib:format("missing ~b empty lines between functions", [2 - Count]);
+format_error(303, Count) ->
+    Fmt = "found an extra ~b empty lines between functions",
+    io_lib:format(Fmt, [Count - 2]).
 
 
 run(Lines) ->
     Forms = emilio_lib:simplified_forms(Lines),
+    check_max_empty_lines(Forms),
+    check_function_empty_lines(Forms).
+
+
+check_max_empty_lines(Forms) ->
     lists:foreach(fun(Form) ->
         case Form of
             {new_line, Anno, Count} when Count > 3 ->
@@ -45,3 +57,25 @@ run(Lines) ->
                 ok
         end
     end, Forms).
+
+
+check_function_empty_lines([]) ->
+    [];
+
+check_function_empty_lines([{function, _, _, _, _} | Rest]) ->
+    case Rest of
+        [] ->
+            ok;
+        [{new_line, _, _}] ->
+            ok;
+        [{new_line, _, Count} | _] when Count == 3 ->
+            ok;
+        [{new_line, Anno, Count} | _] ->
+            ?EMILIO_REPORT(Anno, 302, Count - 1);
+        [Form | _] ->
+            ?EMILIO_REPORT(element(2, Form), 302, 0)
+    end,
+    check_function_empty_lines(Rest);
+
+check_function_empty_lines([_Form | Rest]) ->
+    check_function_empty_lines(Rest).

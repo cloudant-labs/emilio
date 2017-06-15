@@ -152,6 +152,7 @@ replace_macro_args([{white_space, _, _} = Token | Rest]) ->
 replace_macro_args(Tokens) ->
     Tokens.
 
+
 replace_macro_args([{'(', _} = Token | Rest], CloseStack, Arg) ->
     replace_macro_args(Rest, [')' | CloseStack], [Token | Arg]);
 

@@ -40,6 +40,7 @@ Implemented Checks
 * 251 whitespace before }
 
 * 301 more than two blank lines at module level
+* 302 not two blank lines between functions
 
 * 501 line longer than 80 characters
 
@@ -51,7 +52,6 @@ To Implement
 ---
 
 * 3xx module blank lines
-  * 302 not two blank lines between functions
   * 310 more than one blank line between function clauses
   * 311 mixed blank line count between function clauses
 

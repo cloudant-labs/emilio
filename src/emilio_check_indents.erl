@@ -54,6 +54,7 @@ check_line(Anno, Line, Ctx) ->
             end
     end.
 
+
 get_prev_line(Ctx) ->
     case emilio_lib:prev_line(Ctx) of
         {ok, PrevLine, PrevCtx} ->
