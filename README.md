@@ -44,6 +44,8 @@ Implemented Checks
 * 3XX Empty Line Checks
     * 301 more than two blank lines at module level
     * 302 not two blank lines between functions
+    * 310 more than one blank line between function clauses
+    * 311 mixed blank line count between function clauses
 
 * 5XX Physical Line Checks
     * 501 line longer than 80 characters
@@ -55,10 +57,6 @@ Implemented Checks
 
 To Implement
 ---
-
-* 3xx module blank lines
-    * 310 more than one blank line between function clauses
-    * 311 mixed blank line count between function clauses
 
 * 4xx import/export
     * 401 imports used

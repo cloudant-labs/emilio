@@ -12,9 +12,6 @@
 
 -define(EMILIO_CHECKS, [
     emilio_check_line_length,
-    emilio_check_ws_spaces_only,
-    emilio_check_ws_file_newline,
-    emilio_check_ws_commas,
     emilio_check_indents_counts,
     emilio_check_indents,
     emilio_check_indents_match,
@@ -22,12 +19,16 @@
     emilio_check_indents_when,
     emilio_check_indents_op2,
     emilio_check_indents_exports,
+    emilio_check_ws_spaces_only,
+    emilio_check_ws_file_newline,
+    emilio_check_ws_commas,
     emilio_check_ws_attributes,
     emilio_check_ws_misc,
     emilio_check_ws_parens,
     emilio_check_ws_lists,
     emilio_check_ws_tuples,
-    emilio_check_mod_empty_lines
+    emilio_check_nl_top_level,
+    emilio_check_nl_fun_clauses
 ]).
 
 

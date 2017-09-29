@@ -10,7 +10,7 @@
 % License for the specific language governing permissions and limitations under
 % the License.
 
--module(emilio_check_mod_empty_lines).
+-module(emilio_check_nl_top_level).
 
 -export([
     codes/0,
@@ -37,7 +37,7 @@ format_error(301, Count) ->
     io_lib:format("found ~b consecutive empty lines", [Count]);
 format_error(302, Count) when Count < 2 ->
     io_lib:format("missing ~b empty lines between functions", [2 - Count]);
-format_error(303, Count) ->
+format_error(302, Count) ->
     Fmt = "found an extra ~b empty lines between functions",
     io_lib:format(Fmt, [Count - 2]).
 
