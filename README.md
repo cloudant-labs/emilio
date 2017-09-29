@@ -84,20 +84,20 @@ add the module name to the list in `emilio.hrl` so that its executed.
 Projects For Fuzz Testing
 ---
 
-https://github.com/alpaca-lang/alpaca
-https://github.com/apache/couchdb
-https://github.com/basho/riak
-https://github.com/cloudant/porkrind
-https://github.com/elixir-lang/elixir
-https://github.com/emqtt/emqttd
-https://github.com/erlang/otp
-https://github.com/ferd/recon
-https://github.com/inaka/elvis
-https://github.com/leo-project/leofs
-https://github.com/manopapad/proper
-https://github.com/ninenines/cowboy
-https://github.com/ninenines/ranch
-https://github.com/processone/ejabberd
-https://github.com/rabbitmq/rabbitmq-server
-https://github.com/rvirding/lfe
-https://github.com/synrc/n2o
+* https://github.com/alpaca-lang/alpaca
+* https://github.com/apache/couchdb
+* https://github.com/basho/riak
+* https://github.com/cloudant/porkrind
+* https://github.com/elixir-lang/elixir
+* https://github.com/emqtt/emqttd
+* https://github.com/erlang/otp
+* https://github.com/ferd/recon
+* https://github.com/inaka/elvis
+* https://github.com/leo-project/leofs
+* https://github.com/manopapad/proper
+* https://github.com/ninenines/cowboy
+* https://github.com/ninenines/ranch
+* https://github.com/processone/ejabberd
+* https://github.com/rabbitmq/rabbitmq-server
+* https://github.com/rvirding/lfe
+* https://github.com/synrc/n2o
