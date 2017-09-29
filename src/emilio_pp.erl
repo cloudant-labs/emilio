@@ -332,7 +332,7 @@ linearize({attribute, _Anno, beahviour, _Name} = Elem) ->
     [Elem];
 
 linearize({attribute, Anno, export, FAList}) ->
-    Exports = [{export, Anno, F, A} || {F, A} <- FAList],
+    Exports = [{export, Aa, F, A} || {Aa, F, A} <- FAList],
     [{attribute, Anno, export} | Exports];
 
 linearize({attribute, Anno, import, {Module, FAList}}) ->

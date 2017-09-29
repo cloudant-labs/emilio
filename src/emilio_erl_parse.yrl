@@ -1238,8 +1238,8 @@ attribute_farity_map(Args) ->
 error_bad_decl(Anno, S) ->
     ret_err(Anno, io_lib:format("bad ~w declaration", [S])).
 
-farity_list({cons,_Ac,{op,_Ao,'/',{atom,_Aa,A},{integer,_Ai,I}},Tail}) ->
-    [{A,I}|farity_list(Tail)];
+farity_list({cons,_Ac,{op,_Ao,'/',{atom,Aa,A},{integer,_Ai,I}},Tail}) ->
+    [{Aa,A,I}|farity_list(Tail)];
 farity_list({nil,_An}) -> [];
 farity_list(Other) ->
     ret_err(?anno(Other), "bad function arity").

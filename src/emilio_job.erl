@@ -13,9 +13,6 @@
 -module(emilio_job).
 
 
--include("emilio.hrl").
-
-
 -export([
     start/1
 ]).
@@ -23,6 +20,9 @@
 -export([
     init/1
 ]).
+
+
+-include("emilio.hrl").
 
 
 start(FileName) ->

@@ -14,6 +14,7 @@
 
 
 -export([
+    fold_tokens/3,
     foreach_token/2,
     foreach_line/2,
 
@@ -60,6 +61,18 @@
     'fun',
     'named_fun'
 ]).
+
+
+fold_tokens(UserFun, Acc, [CurrLine | RestLines]) ->
+    Ctx = #ctx{
+        prev_lines = [],
+        curr_line = CurrLine,
+        rest_lines = RestLines,
+
+        prev_tokens = [],
+        rest_tokens = CurrLine
+    },
+    iter_fwd(Ctx, UserFun, Acc).
 
 
 foreach_token(UserFun, Lines) ->
