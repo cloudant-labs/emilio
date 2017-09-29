@@ -6,70 +6,75 @@ The friendly butler checking your source code.
 Implemented Checks
 ---
 
-* 111 indendation is not a multiple of four
-* 112 indentation increases by more than one or two levels
-* 120 indentation does not match for tokens
-* 121 indentation does not increase for clauses
-* 122 'when' token is not indented two levels
-* 123 indentation does not increase two levels after trailing operator
-* 124 indentation does not increase two levels with prefixed operator
-* 130 exports not indented correctly
+* 1XX Indentation Checks
+    * 111 indendation is not a multiple of four
+    * 112 indentation increases by more than one or two levels
+    * 120 indentation does not match for tokens
+    * 121 indentation does not increase for clauses
+    * 122 'when' token is not indented two levels
+    * 123 indentation does not increase two levels after trailing operator
+    * 124 indentation does not increase two levels with prefixed operator
+    * 130 exports not indented correctly
 
-* 201 white space contains tabs
-* 202 white space contains form feed
-* 203 line ending has form feed
-* 204 whitespace contains invalid control or unicode code point
+* 2XX White Space Checks
+    * 201 white space contains tabs
+    * 202 white space contains form feed
+    * 203 line ending has form feed
+    * 204 whitespace contains invalid control or unicode code point
 
-* 210 file does not end with a single newline
+    * 210 file does not end with a single newline
 
-* 221 white space before comma
-* 222 no spaces after comma
-* 223 space before semicolons
-* 224 space before dot
-* 225 white space before attribute declaration
+    * 221 white space before comma
+    * 222 no spaces after comma
+    * 223 space before semicolons
+    * 224 space before dot
+    * 225 white space before attribute declaration
 
-* 230 whitespace after (
-* 231 whitespace before )
+    * 230 whitespace after (
+    * 231 whitespace before )
 
-* 240 whitespace after [
-* 241 whitespace before ]
-* 242 no whitespace before |
-* 243 no whitespace after |
+    * 240 whitespace after [
+    * 241 whitespace before ]
+    * 242 no whitespace before |
+    * 243 no whitespace after |
 
-* 250 whitespace after {
-* 251 whitespace before }
+    * 250 whitespace after {
+    * 251 whitespace before }
 
-* 301 more than two blank lines at module level
-* 302 not two blank lines between functions
+* 3XX Empty Line Checks
+    * 301 more than two blank lines at module level
+    * 302 not two blank lines between functions
 
-* 501 line longer than 80 characters
+* 5XX Physical Line Checks
+    * 501 line longer than 80 characters
 
-* 901 Unscanable source
-* 902 Unparseable form
-* 903 Internal error
+* 9XX Internal Errors
+    * 901 Unscanable source
+    * 902 Unparseable form
+    * 903 Internal error
 
 To Implement
 ---
 
 * 3xx module blank lines
-  * 310 more than one blank line between function clauses
-  * 311 mixed blank line count between function clauses
+    * 310 more than one blank line between function clauses
+    * 311 mixed blank line count between function clauses
 
 * 4xx import/export
-  * 401 imports used
-  * 410 exports grouped incorrectly
-  * 411 second group not gen behavior
-  * 420 private functions mixed with exported functions
-  * 421 function order does not match export order
+    * 401 imports used
+    * 410 exports grouped incorrectly
+    * 411 second group not gen behavior
+    * 420 private functions mixed with exported functions
+    * 421 function order does not match export order
 
 * 6xx Anti-patterns
-  * 601 _Variable used
+    * 601 _Variable used
 
 * 7xx logical analysis?
-  * 701 case statement with single clause?
+    * 701 case statement with single clause?
 
 * 8xx
-  * 801 source file missing Apache ASLv2 license
+    * 801 source file missing Apache ASLv2 license
 
 
 Adding a Check
