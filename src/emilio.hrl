@@ -29,8 +29,8 @@
     emilio_check_ws_tuples,
     emilio_check_nl_top_level,
     emilio_check_nl_fun_clauses,
-    emilio_check_impexp_decl,
-    emilio_check_impexp_groups
+    emilio_check_exports_decl,
+    emilio_check_exports_groups
 ]).
 
 

@@ -10,7 +10,7 @@
 % License for the specific language governing permissions and limitations under
 % the License.
 
--module(emilio_check_impexp_decl).
+-module(emilio_check_exports_decl).
 
 -export([
     codes/0,
