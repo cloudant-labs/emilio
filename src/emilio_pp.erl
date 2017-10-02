@@ -790,7 +790,7 @@ linearize_expr({'fun', Anno0, {clauses, Clauses}}, Depth) ->
 linearize_expr({named_fun, Anno, Name, Clauses}, Depth) ->
     [StartAnno, {'end', End}] = split_anno(Anno),
     LinearClauses =
-            linearize_clause_list(named_fun_clase, StartAnno, Clauses, Depth),
+            linearize_clause_list(named_fun_clause, StartAnno, Clauses, Depth),
     [set_depth({named_fun, StartAnno, Name, length(Clauses)}, Depth)]
             ++ LinearClauses
             ++ [set_depth(End, Depth)].
