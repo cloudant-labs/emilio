@@ -58,19 +58,13 @@ Implemented Checks
 * 6xx Anti-patterns
     * 601 _Variable reused
 
+* 7xx logical analysis?
+    * 701 case statement with single clause?
+
 * 9XX Internal Errors
     * 901 Unscanable source
     * 902 Unparseable form
     * 903 Internal error
-
-To Implement
----
-
-* 7xx logical analysis?
-    * 701 case statement with single clause?
-
-* 8xx
-    * 801 source file missing Apache ASLv2 license
 
 
 Adding a Check
