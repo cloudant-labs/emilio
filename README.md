@@ -49,6 +49,8 @@ Implemented Checks
     * 411 too many export groups
     * 412 behavior export groups not ordered correctly
     * 413 behavior callbacks not ordered correctly
+    * 420 function order does not match export order
+    * 421 private functions mixed with exported functions
 
 * 5XX Physical Line Checks
     * 501 line longer than 80 characters
@@ -60,10 +62,6 @@ Implemented Checks
 
 To Implement
 ---
-
-* 4xx import/export
-    * 420 function order does not match export order
-    * 421 private functions mixed with exported functions
 
 * 6xx Anti-patterns
     * 601 _Variable used

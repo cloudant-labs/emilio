@@ -49,15 +49,15 @@ ws_after(Ctx) ->
     end.
 
 
+skip_sep({sep, _}, _Ctx, Acc) ->
+    {continue, Acc};
+skip_sep(Token, _Ctx, _Acc) ->
+    {stop, Token}.
+
+
 get_prev(Ctx) ->
     emilio_lib:iter_rev(Ctx, fun skip_sep/3, undefined).
 
 
 get_next(Ctx) ->
     emilio_lib:iter_fwd(Ctx, fun skip_sep/3, undefined).
-
-
-skip_sep({sep, _}, _Ctx, Acc) ->
-    {continue, Acc};
-skip_sep(Token, _Ctx, _Acc) ->
-    {stop, Token}.

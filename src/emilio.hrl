@@ -30,7 +30,8 @@
     emilio_check_nl_top_level,
     emilio_check_nl_fun_clauses,
     emilio_check_exports_decl,
-    emilio_check_exports_groups
+    emilio_check_exports_groups,
+    emilio_check_exports_order
 ]).
 
 
