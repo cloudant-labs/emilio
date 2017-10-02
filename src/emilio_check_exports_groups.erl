@@ -93,10 +93,10 @@ run(Lines) ->
 
 
 check_counts(NumBehaviors, NumExports) when NumBehaviors > NumExports ->
-    ?EMILIO_REPORT(410, [{line, 0}, {column, 0}], {NumBehaviors, NumExports}),
+    ?EMILIO_REPORT([{line, 0}, {column, 0}], 410, {NumBehaviors, NumExports}),
     error;
 check_counts(NumBehaviors, NumExports) when NumBehaviors + 2 < NumExports ->
-    ?EMILIO_REPORT(411, [{line, 0}, {column, 0}], {NumBehaviors, NumExports}),
+    ?EMILIO_REPORT([{line, 0}, {column, 0}], 411, {NumBehaviors, NumExports}),
     error;
 check_counts(NumBehaviors, NumExports) when NumBehaviors == NumExports ->
     {ok, 0};
