@@ -21,23 +21,18 @@ Implemented Checks
     * 202 white space contains form feed
     * 203 line ending has form feed
     * 204 whitespace contains invalid control or unicode code point
-
     * 210 file does not end with a single newline
-
     * 221 white space before comma
     * 222 no spaces after comma
     * 223 space before semicolons
     * 224 space before dot
     * 225 white space before attribute declaration
-
     * 230 whitespace after (
     * 231 whitespace before )
-
     * 240 whitespace after [
     * 241 whitespace before ]
     * 242 no whitespace before |
     * 243 no whitespace after |
-
     * 250 whitespace after {
     * 251 whitespace before }
 
