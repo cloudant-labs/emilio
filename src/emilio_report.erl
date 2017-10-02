@@ -11,7 +11,7 @@
 % the License.
 
 -module(emilio_report).
-
+-behavior(gen_server).
 
 -export([
     start_link/0,
@@ -28,7 +28,6 @@
     handle_info/2,
     code_change/3
 ]).
-
 
 -define(FORMATTERS, [
     {text, emilio_report_formatter_text},

@@ -43,9 +43,12 @@ Implemented Checks
     * 311 mixed blank line count between function clauses
 
 * 4xx import/export
-    * 401 more than three export declarations
-    * 402 invalid attribute before exports
-    * 403 imports used
+    * 401 invalid attribute before exports
+    * 402 imports used
+    * 410 too few export groups
+    * 411 too many export groups
+    * 412 behavior export groups not ordered correctly
+    * 413 behavior callbacks not ordered correctly
 
 * 5XX Physical Line Checks
     * 501 line longer than 80 characters
@@ -59,9 +62,6 @@ To Implement
 ---
 
 * 4xx import/export
-    * 410 exports grouped incorrectly
-    * 411 gen functions not exported first or second
-    * 412 gen functions not ordered correctly
     * 420 function order does not match export order
     * 421 private functions mixed with exported functions
 

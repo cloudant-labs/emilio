@@ -13,7 +13,8 @@
 -module(emilio_check_impexp_decl).
 
 -export([
-    codes/0, explain/1,
+    codes/0,
+    explain/1,
     format_error/2,
     run/1
 ]).
@@ -23,56 +24,38 @@
 
 
 codes() ->
-    [401, 402, 403, 404].
+    [401, 402].
 
 
 explain(401) ->
-    "Do not use more than three export groups";
-explain(402) ->
     "Only module and behavior attributes are allowed before exports";
-explain(403) ->
+explain(402) ->
     "Imports should not be used".
 
 
-format_error(401, N) ->
-    io_lib:format("found an extra ~b export groups", [N]);
-format_error(402, Name) ->
+format_error(401, Name) ->
     io_lib:format("invalid ~s attribute before exports", [Name]);
-format_error(403, _) ->
+format_error(402, _) ->
     "import declaration found".
 
 
 run(Lines) ->
     Attrs = find_attributes(Lines),
-    check_export_count(Attrs),
     check_order(Attrs),
     check_no_imports(Attrs).
-
-
-check_export_count(Attrs) ->
-    Anno = [{line, 0}, {column, 0}],
-    Total = lists:foldl(fun(Attr, Count) ->
-        if element(3, Attr) /= export -> Count; true ->
-            Count + 1
-        end
-    end, 0, Attrs),
-    case Total of
-        N when N =< 3 -> ok;
-        N -> ?EMILIO_REPORT(Anno, 401, N - 3)
-    end.
 
 
 check_order(Attrs) ->
     Names = [element(3, Attr) || Attr <- Attrs],
     HasExport = lists:member(export, Names),
-    Allowed = [module, beahvior, behaviour],
+    Allowed = [module, behavior, behaviour],
     DropFun = fun(Attr) -> lists:member(element(3, Attr), Allowed) end,
     RestAttrs = lists:dropwhile(DropFun, Attrs),
     case RestAttrs of
         [{attribute, _, export} | _] ->
             ok;
         [BadAttr | _] when HasExport ->
-            ?EMILIO_REPORT(BadAttr, 402, element(3, BadAttr));
+            ?EMILIO_REPORT(BadAttr, 401, element(3, BadAttr));
         _ ->
             ok
     end.
@@ -81,7 +64,7 @@ check_order(Attrs) ->
 check_no_imports(Attrs) ->
     lists:foreach(fun(Attr) ->
         if element(3, Attr) /= import -> ok; true ->
-            ?EMILIO_REPORT(Attr, 403)
+            ?EMILIO_REPORT(Attr, 402)
         end
     end, Attrs).
 
