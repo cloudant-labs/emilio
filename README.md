@@ -55,6 +55,9 @@ Implemented Checks
 * 5XX Physical Line Checks
     * 501 line longer than 80 characters
 
+* 6xx Anti-patterns
+    * 601 _Variable reused
+
 * 9XX Internal Errors
     * 901 Unscanable source
     * 902 Unparseable form
@@ -62,9 +65,6 @@ Implemented Checks
 
 To Implement
 ---
-
-* 6xx Anti-patterns
-    * 601 _Variable used
 
 * 7xx logical analysis?
     * 701 case statement with single clause?
