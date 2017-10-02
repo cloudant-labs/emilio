@@ -64,7 +64,8 @@ check_order(Exports, Functions, PrevFun, AllExports) ->
             check_order(Exports, RestFunctions, PrevFun, AllExports);
         IsExported ->
             ?EMILIO_REPORT(Function, 420, {{Export, EArity}, {FName, FArity}}),
-            check_order(Exports, RestFunctions, PrevFun, AllExports);
+            NewExports = Exports -- [{FName, FArity}],
+            check_order(NewExports, RestFunctions, PrevFun, AllExports);
         true ->
             ?EMILIO_REPORT(Function, 421, {FName, FArity}),
             check_order(Exports, RestFunctions, PrevFun, AllExports)
