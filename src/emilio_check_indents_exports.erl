@@ -31,23 +31,21 @@ explain(130) ->
     "export attribute ".
 
 
-format_error(130, Levels) ->
-    io_lib:format("export indented ~b levels, not 1", [Levels]).
+format_error(130, {Indent, Column}) ->
+    io_lib:format("export at column ~b, not ~b", [Column, Indent + 1]).
 
 
 run(Lines) ->
-    emilio_lib:foreach_token(fun check_exports/3, Lines).
+    emilio_lib:foreach_token(fun check_exports/2, Lines).
 
 
-check_exports(Anno, Token, Ctx) ->
+check_exports(Anno, Token) ->
     case element(1, Token) of
         export ->
-            CurrLine = emilio_lib:curr_line(Ctx),
-            case emilio_lib:indent_level(CurrLine) of
-                1 ->
-                    ok;
-                N ->
-                    ?EMILIO_REPORT(Anno, 130, N)
+            Indent = emilio_cfg:get(indentation_count),
+            {_, Col} = emilio_anno:lc(Anno),
+            if (Col - 1) == Indent -> ok; true ->
+                ?EMILIO_REPORT(Anno, 130, {Indent, Col})
             end;
         _ ->
             ok
