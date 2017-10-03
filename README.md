@@ -11,9 +11,10 @@ Implemented Checks
     * 112 indentation increases by more than one or two levels
     * 120 indentation does not match for tokens
     * 121 indentation does not increase for clauses
-    * 122 'when' token is not indented two levels
-    * 123 indentation does not increase two levels after trailing operator
-    * 124 indentation does not increase two levels with prefixed operator
+    * 122 indentation does not increase for clause bodies
+    * 123 'when' token is not indented two levels
+    * 124 indentation does not increase two levels after trailing operator
+    * 125 indentation does not increase two levels with prefixed operator
     * 130 exports not indented correctly
 
 * 2XX White Space Checks
@@ -65,6 +66,7 @@ Implemented Checks
     * 901 Unscanable source
     * 902 Unparseable form
     * 903 Internal error
+    * 904 Untriggered whitelist entry
 
 
 Adding a Check

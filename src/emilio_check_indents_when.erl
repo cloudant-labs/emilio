@@ -35,15 +35,15 @@
 
 
 codes() ->
-    [122].
+    [123].
 
 
-explain(122) ->
+explain(123) ->
     "When should be indented two levels so its not confused with "
     "the clause body.".
 
 
-format_error(122, {Token, Levels}) ->
+format_error(123, {Token, Levels}) ->
     Name = element(1, Token),
     Fmt = "indentation for ~s 'when' was ~b, not 2",
     io_lib:format(Fmt, [Name, Levels]).
@@ -85,5 +85,5 @@ check_indent_increases(Anno, MatchToken, MatchLine, TokenLine) ->
     TokenLevel = emilio_lib:indent_level(TokenLine),
     Diff = TokenLevel - MatchLevel,
     if Diff == 2 -> ok; true ->
-        ?EMILIO_REPORT(Anno, 122, {MatchToken, Diff})
+        ?EMILIO_REPORT(Anno, 123, {MatchToken, Diff})
     end.

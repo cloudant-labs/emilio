@@ -24,19 +24,19 @@
 
 
 codes() ->
-    [123, 124].
+    [124, 125].
 
 
-explain(123) ->
-    "indentation does not increase two levels after trailing operator";
 explain(124) ->
+    "indentation does not increase two levels after trailing operator";
+explain(125) ->
     "indentation does not increase two levels with prefixed operator".
 
 
-format_error(123, Op) ->
+format_error(124, Op) ->
     Fmt = "indentation does not increase two levels for trailing ~s operator",
     io_lib:format(Fmt, [element(3, Op)]);
-format_error(124, Op) ->
+format_error(125, Op) ->
     Fmt = "indentation does not increase two levels for leading ~s operator",
     io_lib:format(Fmt, [element(3, Op)]).
 
@@ -71,8 +71,8 @@ check_group_indents(BaseLevel, Op, [Line | Rest]) ->
     % Reports switch depending on whether we're looking
     % at a prefixed or suffixed operator.
     ReportCode = case Op of
-        undefined -> 124;
-        _ -> 123
+        undefined -> 125;
+        _ -> 124
     end,
     ReportOp = case Op of
         undefined -> element(1, Line);

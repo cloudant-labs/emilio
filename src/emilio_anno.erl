@@ -16,6 +16,7 @@
 -export([
     lc/1,
     ref/1,
+    depth/1,
 
     inc_line/1,
     inc_col/1,
@@ -41,6 +42,16 @@ ref(Anno) when is_list(Anno) ->
 
 ref(Tuple) when is_tuple(Tuple), size(Tuple) >= 2 ->
     ref(element(2, Tuple)).
+
+
+depth(Anno) when is_list(Anno) ->
+    case lists:keyfind(depth, 1, Anno) of
+        {depth, Depth} -> Depth;
+        false -> undefined
+    end;
+
+depth(Tuple) when is_tuple(Tuple), size(Tuple) >= 2 ->
+    depth(element(2, Tuple)).
 
 
 inc_line(Anno) when is_list(Anno) ->
