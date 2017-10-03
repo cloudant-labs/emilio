@@ -36,6 +36,8 @@
     {json, emilio_report_formatter_json}
 ]).
 
+-define(WHITELIST, emilio_report_whitelist).
+
 
 -record(st, {
     files = queue:new(),
@@ -64,7 +66,11 @@ update(FileName, Module, Anno, Code, Arg) ->
     {Line, Col} = emilio_anno:lc(Anno),
     ErrMsg = Module:format_error(Code, Arg),
     Msg = {update, FileName, Line, Col, Code, ErrMsg},
-    gen_server:call(?MODULE, Msg, infinity).
+    WLObj = {FileName, Line, Col, Code},
+    IsWhitelisted = ets:match_object(?WHITELIST, WLObj) /= [],
+    if IsWhitelisted -> ok; true ->
+        gen_server:call(?MODULE, Msg, infinity)
+    end.
 
 
 wait() ->
@@ -79,6 +85,7 @@ wait() ->
 
 
 init(_) ->
+    init_whitelist(),
     Fmt = get_formatter(),
     {ok, FmtSt} = Fmt:init(),
     {ok, #st{
@@ -292,6 +299,30 @@ format_report(St, FileName) ->
     end.
 
 
+init_whitelist() ->
+    ets:new(?WHITELIST, [named_table, public, bag]),
+    CSV = emilio_cfg:get(whitelist),
+    if CSV == undefined -> ok; true ->
+        {ok, Data} = file:read_file(CSV),
+        AllLines = binary:split(Data, [<<"\r">>, <<"\n">>], [global]),
+        NonEmpty = [L || L <- AllLines, size(L) > 0],
+        lists:foreach(fun(Row) ->
+            try
+                [FileNameB, LineB, ColB, CodeB]
+                        = binary:split(Row, <<",">>, [global]),
+                FileName = binary_to_list(FileNameB),
+                Line = bin_to_int(LineB),
+                Col = bin_to_int(ColB),
+                Code = bin_to_int(CodeB),
+                ets:insert(?WHITELIST, {FileName, Line, Col, Code})
+            catch _T:_R ->
+                emilio_log:error("Invalid whitelist line: ~s", [Row]),
+                emilio_util:shutdown(1)
+            end
+        end, NonEmpty)
+    end.
+
+
 get_formatter() ->
     Fmt = emilio_cfg:get(report_formatter),
     {_, Formatter} = if
@@ -299,3 +330,7 @@ get_formatter() ->
         is_list(Fmt) -> lists:keyfind(list_to_atom(Fmt), 1, ?FORMATTERS)
     end,
     Formatter.
+
+
+bin_to_int(B) ->
+    list_to_integer(binary_to_list(B)).

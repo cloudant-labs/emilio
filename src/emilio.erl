@@ -56,6 +56,13 @@
         "format",
         'string',
         "Set the output format [default: text]"
+    },
+    {
+        whitelist,
+        $w,
+        "whitelist",
+        'string',
+        "A CSV file of filename,line,column,code reports to ignore"
     }
 ]).
 
