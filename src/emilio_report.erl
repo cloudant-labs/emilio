@@ -64,12 +64,16 @@ queue(FileName) ->
 
 update(FileName, Module, Anno, Code, Arg) ->
     {Line, Col} = emilio_anno:lc(Anno),
-    ErrMsg = Module:format_error(Code, Arg),
-    Msg = {update, FileName, Line, Col, Code, ErrMsg},
-    WLObj = {FileName, Line, Col, Code},
-    IsWhitelisted = ets:match_object(?WHITELIST, WLObj) /= [],
-    if IsWhitelisted -> ok; true ->
-        gen_server:call(?MODULE, Msg, infinity)
+    WLObj = {FileName, Line, Col, Code, '_'},
+    case ets:match_object(?WHITELIST, WLObj) of
+        [] ->
+            ErrMsg = Module:format_error(Code, Arg),
+            Msg = {update, FileName, Line, Col, Code, ErrMsg},
+            gen_server:call(?MODULE, Msg, infinity);
+        [_] ->
+            ets:match_delete(?WHITELIST, WLObj),
+            ets:insert(?WHITELIST, {FileName, Line, Col, Code, true}),
+            ok
     end.
 
 
@@ -176,7 +180,10 @@ handle_info({'DOWN', Ref, process, _, Reason}, St0) ->
         queue_waiter = Waiter
     } = St0,
     FileName = dict:fetch(Ref, Jobs),
-    St1 = if Reason == normal -> St0; true ->
+    St1 = if Reason /= normal -> St0; true ->
+        check_whitelist(FileName, St0)
+    end,
+    St2 = if Reason == normal -> St1; true ->
         Fmt = "an error occurred while processing ~s :: ~p",
         ErrMsg = io_lib:format(Fmt, [FileName, Reason]),
         Msg = {update, FileName, 0, 0, 903, ErrMsg},
@@ -188,12 +195,12 @@ handle_info({'DOWN', Ref, process, _, Reason}, St0) ->
     end,
     NewJobs = dict:erase(Ref, Jobs),
     NewFinished = sets:add_element(FileName, Finished),
-    St2 = St1#st{
+    St3 = St2#st{
         jobs = NewJobs,
         finished = NewFinished,
         queue_waiter = undefined
     },
-    drain(start_jobs(St2));
+    drain(start_jobs(St3));
 
 handle_info(Msg, St) ->
     {stop, {bad_info, Msg}, St}.
@@ -314,7 +321,7 @@ init_whitelist() ->
                 Line = bin_to_int(LineB),
                 Col = bin_to_int(ColB),
                 Code = bin_to_int(CodeB),
-                ets:insert(?WHITELIST, {FileName, Line, Col, Code})
+                ets:insert(?WHITELIST, {FileName, Line, Col, Code, false})
             catch _T:_R ->
                 emilio_log:error("Invalid whitelist line: ~s", [Row]),
                 emilio_util:shutdown(1)
@@ -330,6 +337,19 @@ get_formatter() ->
         is_list(Fmt) -> lists:keyfind(list_to_atom(Fmt), 1, ?FORMATTERS)
     end,
     Formatter.
+
+
+check_whitelist(FileName, St) ->
+    Entries = ets:lookup(?WHITELIST, FileName),
+    lists:foldl(fun({_FName, Line, Col, Code, Triggered}, StAcc) ->
+        if Triggered -> StAcc; true ->
+            Fmt = "untriggered white list entry for ~b",
+            ErrMsg = io_lib:format(Fmt, [Code]),
+            Msg = {update, FileName, Line, Col, 904, ErrMsg},
+            {reply, ok, S} = handle_call(Msg, nil, StAcc),
+            S
+        end
+    end, St, Entries).
 
 
 bin_to_int(B) ->
