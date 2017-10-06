@@ -6,3 +6,21 @@ emilio
 erl_crash.dump
 
 src/emilio_erl_parse.erl
+
+test/alpaca/
+test/couchdb/
+test/cowboy/
+test/ejabberd/
+test/elixir/
+test/elvis/
+test/emqttd/
+test/leofs/
+test/lfe/
+test/n2o/
+test/otp/
+test/porkrind/
+test/proper/
+test/rabbitmq-server/
+test/ranch/
+test/recon/
+test/riak/
