@@ -7,7 +7,7 @@ Implemented Checks
 ---
 
 * 1XX Indentation Checks
-    * 111 indendation is not a multiple of four
+    * 111 indendation is not a multiple of the configured indentation_count
     * 112 indentation increases by more than one or two levels
     * 120 indentation does not match for tokens
     * 121 indentation does not increase for clauses
