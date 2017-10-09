@@ -30,6 +30,8 @@
     find_ref_rev/2,
     find_ref_rev/3,
 
+    collect_lines/3,
+
     iter_fwd/3,
     iter_rev/3,
 
@@ -171,6 +173,21 @@ find_ref_rev(Ctx, Ref, Names) when is_reference(Ref), is_list(Names) ->
 
 find_ref_rev(Ctx, Ref, Name) when is_atom(Name) ->
     find_ref_rev(Ctx, Ref, [Name]).
+
+
+collect_lines(Ctx, StartToken, EndToken) ->
+    FoldFun = fun(Token, TokenCtx, Acc) ->
+        case Token == EndToken of
+            true ->
+                RestTokens = TokenCtx#ctx.rest_tokens,
+                {stop, lists:reverse(RestTokens) ++ [Token | Acc]};
+            false ->
+                {continue, [Token | Acc]}
+        end
+    end,
+    InitAcc = [StartToken | Ctx#ctx.prev_tokens],
+    AllTokens = emilio_lib:iter_fwd(Ctx, FoldFun, InitAcc),
+    group_lines(lists:reverse(AllTokens)).
 
 
 iter_fwd(#ctx{} = Ctx, Fun, Acc) ->

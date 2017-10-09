@@ -16,6 +16,7 @@
 -export([
     lc/1,
     ref/1,
+    parent_ref/1,
 
     inc_line/1,
     inc_col/1,
@@ -41,6 +42,16 @@ ref(Anno) when is_list(Anno) ->
 
 ref(Tuple) when is_tuple(Tuple), size(Tuple) >= 2 ->
     ref(element(2, Tuple)).
+
+
+parent_ref(Anno) when is_list(Anno) ->
+    case lists:keyfind(parent_ref, 1, Anno) of
+        {parent_ref, Ref} -> Ref;
+        false -> undefined
+    end;
+
+parent_ref(Tuple) when is_tuple(Tuple), size(Tuple) >= 2 ->
+    parent_ref(element(2, Tuple)).
 
 
 inc_line(Anno) when is_list(Anno) ->

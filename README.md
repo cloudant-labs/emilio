@@ -14,6 +14,8 @@ Implemented Checks
     * 122 'when' token is not indented two levels
     * 123 indentation does not increase two levels after trailing operator
     * 124 indentation does not increase two levels with prefixed operator
+    * 125 indentation for clause body line does not increase by at least 1
+    * 126 indentation for expression span line does not increase by at least 1
     * 130 exports not indented correctly
 
 * 2XX White Space Checks

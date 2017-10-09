@@ -67,6 +67,10 @@ check_reuse(Token, _, {Refs, RefVars}) ->
                 _ ->
                     {Refs, RefVars}
             end;
+        {span_start, _, _} ->
+            {Refs, RefVars};
+        {span_end, _, _} ->
+            {Refs, RefVars};
         {_, _, _} ->
             case emilio_anno:ref(Token) of
                 Ref when is_reference(Ref) ->

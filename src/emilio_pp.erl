@@ -701,7 +701,7 @@ linearize_expr({'case', Anno, Expr, Clauses}, Depth) ->
     LinearClauses =
             linearize_clause_list(case_clause, StartAnno, Clauses, Depth),
     [set_depth({'case', StartAnno, length(Clauses)}, Depth)]
-            ++ LinearExpr
+            ++ set_span(LinearExpr, emilio_anno:ref(StartAnno))
             ++ [set_depth(Of, Depth)]
             ++ LinearClauses
             ++ [set_depth(End, Depth)];
@@ -744,7 +744,7 @@ linearize_expr({'try', Anno, Body, Cases, Catches, After}, Depth) ->
         length(Catches),
         length(After)
     }, Depth)]
-            ++ LinearBody
+            ++ set_span(LinearBody, emilio_anno:ref(StartAnno))
             ++ LinearCases
             ++ LinearCatches
             ++ LinearAfter
@@ -770,7 +770,7 @@ linearize_expr({'receive', Anno, Clauses, Timeout, After}, Depth) ->
             ++ [set_depth(AfterToken, Depth)]
             ++ LinearTimeout
             ++ Sep
-            ++ LinearAfter
+            ++ set_span(LinearAfter, emilio_anno:ref(StartAnno))
             ++ [set_depth(End, Depth)];
 
 linearize_expr({'fun', _Anno, {function, _F, _A}} = Elem, _Depth) ->
@@ -814,7 +814,7 @@ linearize_clause(Type, {clause, Anno, Patterns, Guards, Body}, Depth) ->
     reposition([ClauseToken]
             ++ LinearPatterns
             ++ LinearGuards
-            ++ LinearBody).
+            ++ set_span(LinearBody, emilio_anno:ref(Anno))).
 
 
 linearize_guards(_, [], _) ->
@@ -876,6 +876,16 @@ reposition([Curr, Next | Rest] = Tokens) ->
             NewAnno = emilio_anno:set_location(Curr, Next),
             [setelement(2, Curr, NewAnno), Next | Rest]
     end.
+
+
+set_span(Tokens, ParentRef) when is_list(Tokens), is_reference(ParentRef) ->
+    Ref = erlang:make_ref(),
+    SpanAnno = [{ref, Ref}, {parent_ref, ParentRef}],
+    FirstAnno = element(2, hd(Tokens)),
+    LastAnno = element(2, lists:last(Tokens)),
+    Head = {span_start, emilio_anno:set_location(SpanAnno, FirstAnno)},
+    Tail = {span_end, emilio_anno:set_location(SpanAnno, LastAnno)},
+    [Head] ++ Tokens ++ [Tail].
 
 
 rewhitespace([]) ->
