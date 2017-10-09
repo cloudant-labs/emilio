@@ -45,6 +45,8 @@ check_reuse(Token, _, {Refs, RefVars}) ->
         {function, [], []} ->
             Ref = emilio_anno:ref(Token),
             {[Ref], [Ref]};
+        {_, [], []} ->
+            {[], []};
         {dot, [_], _} ->
             {[], []};
         {'end', _, _} ->
