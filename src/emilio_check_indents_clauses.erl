@@ -74,6 +74,7 @@ check_indent_increases(Anno, MatchToken, MatchLine, TokenLine) ->
     end.
 
 
+parent_token(if_clause) -> 'if';
 parent_token(case_clause) -> 'case';
 parent_token(try_case_clause) -> 'try';
 parent_token(try_catch_clause) -> 'catch';
