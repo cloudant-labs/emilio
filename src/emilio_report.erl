@@ -315,7 +315,7 @@ init_whitelist() ->
         NonEmpty = [L || L <- AllLines, size(L) > 0],
         lists:foreach(fun(Row) ->
             try
-                [FileNameB, LineB, ColB, CodeB]
+                [FileNameB, LineB, ColB, CodeB | _]
                         = binary:split(Row, <<",">>, [global]),
                 FileName = binary_to_list(FileNameB),
                 Line = bin_to_int(LineB),
