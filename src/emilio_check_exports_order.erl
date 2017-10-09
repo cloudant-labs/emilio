@@ -30,7 +30,9 @@ codes() ->
 explain(420) ->
     "Exports and functions should follow the same order";
 explain(421) ->
-    "Private functions should come after exported functions".
+    "Private functions should come after exported functions";
+explain(422) ->
+    "Missing definition of exported function".
 
 
 format_error(420, {{Export, EArity}, {Function, FArity}}) ->
@@ -38,17 +40,25 @@ format_error(420, {{Export, EArity}, {Function, FArity}}) ->
     io_lib:format(Fmt, [Export, EArity, Function, FArity]);
 format_error(421, {Function, FArity}) ->
     Fmt = "private function ~s/~b found in exported functions",
-    io_lib:format(Fmt, [Function, FArity]).
+    io_lib:format(Fmt, [Function, FArity]);
+format_error(422, {Export, EArity}) ->
+    Fmt = "missing definition of exported function ~s/~b",
+    io_lib:format(Fmt, [Export, EArity]).
 
 
 run(Lines) ->
     Exports = find_exports(Lines),
     Functions = find_functions(Lines),
-    check_order(Exports, Functions, undefined, Exports).
+    check_order(Exports, Functions, [{line, 0}, {column, 0}], Exports).
 
 
 check_order([], _, _, _) ->
     ok;
+
+check_order(Exports, [], Prev, _) ->
+    lists:foreach(fun({Export, EArity}) ->
+        ?EMILIO_REPORT(Prev, 422, {Export, EArity})
+    end, Exports);
 
 check_order(Exports, Functions, PrevFun, AllExports) ->
     [{Export, EArity} | RestExports] = Exports,
