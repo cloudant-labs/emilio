@@ -8,6 +8,12 @@ script:
 
 check: script
 	./emilio -c emilio.config src/
+	./emilio -w priv/documentation/whitelist priv/documentation
+
+
+whitelist: script
+	./emilio -f csv priv/documentation | tail -n +2 \
+		> priv/documentation/whitelist; true
 
 
 clone-projects:
