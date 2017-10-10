@@ -1,0 +1,1 @@
+There should be at most one blank line between function clauses.

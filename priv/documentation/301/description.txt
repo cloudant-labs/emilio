@@ -1,0 +1,1 @@
+There should be no more than two consecutive blank lines.

@@ -1,0 +1,2 @@
+The number of blank lines between function clauses should
+be consistently whether its zero or one.

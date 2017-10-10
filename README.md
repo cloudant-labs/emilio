@@ -24,19 +24,19 @@ Implemented Checks
     * 203 line ending has carriage return
     * 204 whitespace contains invalid control or unicode code point
     * 210 file does not end with a single newline
-    * 221 white space before comma
+    * 221 space before comma
     * 222 no spaces after comma
     * 223 space before semicolons
     * 224 space before dot
-    * 225 white space before attribute declaration
-    * 230 whitespace after (
-    * 231 whitespace before )
-    * 240 whitespace after [
-    * 241 whitespace before ]
+    * 225 space before attribute declaration
+    * 230 space after (
+    * 231 space before )
+    * 240 space after [
+    * 241 space before ]
     * 242 no whitespace before |
     * 243 no whitespace after |
-    * 250 whitespace after {
-    * 251 whitespace before }
+    * 250 space after {
+    * 251 space before }
 
 * 3XX Empty Line Checks
     * 301 more than two blank lines at module level

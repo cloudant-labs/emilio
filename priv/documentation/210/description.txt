@@ -1,0 +1,4 @@
+Source files must end with a single trailing newline so that
+they adhere to the definition of a text file. Also more practically
+it prevents spurious diffs when users with different editors end up
+inadvertently adding trailing whitespace.
