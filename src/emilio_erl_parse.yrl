@@ -143,7 +143,7 @@ type -> atom ':' atom '(' ')'             : {remote_type, ?anno('$1'),
                                              ['$1', '$3', []]}.
 type -> atom ':' atom '(' top_types ')'   : {remote_type, ?anno('$1'),
                                              ['$1', '$3', '$5']}.
-type -> '[' ']'                           : {type, ?anno('$1'), nil, []}.
+type -> '[' ']'                           : {type, ?anno('$2'), nil, []}.
 type -> '[' top_type ']'                  : {type, ?anno('$1'), list, ['$2']}.
 type -> '[' top_type ',' '...' ']'        : {type, ?anno('$1'),
                                              nonempty_list, ['$2']}.
@@ -279,7 +279,7 @@ expr_max -> fun_expr : '$1'.
 expr_max -> try_expr : '$1'.
 
 
-list -> '[' ']' : {nil,?anno('$1')}.
+list -> '[' ']' : {nil,?anno('$2')}.
 list -> '[' expr tail : {cons,?anno('$1'),'$2','$3'}.
 
 tail -> ']' : {nil,?anno('$1')}.

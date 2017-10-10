@@ -53,12 +53,12 @@ run(Lines) ->
 
 check(Anno, Token, Ctx) ->
     case element(1, Token) of
-        cons ->
+        T when T == cons orelse T == '[' ->
             case emilio_lib_ws:ws_after(Ctx) of
                 true -> ?EMILIO_REPORT(Anno, 240);
                 false -> ok
             end;
-        ']' ->
+        T when T == nil orelse T == ']' ->
             case emilio_lib_ws:ws_before(Ctx) of
                 true -> ?EMILIO_REPORT(Anno, 241);
                 false -> ok
