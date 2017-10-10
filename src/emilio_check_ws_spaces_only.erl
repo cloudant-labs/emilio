@@ -40,9 +40,9 @@ explain(204) ->
 format_error(201, _) ->
     "white space contains tabs";
 format_error(202, _) ->
-    "white space contains form feeds";
+    "white space contains carriage returns";
 format_error(203, _) ->
-    "line ending has form feed";
+    "line ending has carriage return";
 format_error(204, Code) ->
     io_lib:format("line contains invalid control code: ~b", [Code]).
 
@@ -51,9 +51,9 @@ run(Lines) ->
     emilio_lib:foreach_token(fun check/3, Lines).
 
 
-check(Anno, {white_space, _, Text}, Ctx) ->
+check(Anno, {white_space, Anno, Text}, _) ->
     check_ws(Anno, Text, $\t, 201),
-    NewText = check_line_ending(Text, Ctx),
+    NewText = check_line_ending(Text, Anno),
     check_ws(Anno, NewText, $\r, 202),
     check_not_space(Anno, NewText);
 
@@ -72,22 +72,21 @@ check_ws(Anno, [_ | Rest], Char, Code) ->
     check_ws(emilio_anno:inc_col(Anno), Rest, Char, Code).
 
 
-check_line_ending(Text, Ctx) ->
+check_line_ending(Text, Anno) when length(Text) >= 2 ->
     % Return a modified Text here removing
     % the trailing \r so that its not
     % reported as a 202 for line endings.
-    case emilio_lib:next_token(Ctx) of
-        {white_space, Anno, [$\n]} ->
-            case lists:last(Text) == $\r of
-                true ->
-                    ?EMILIO_REPORT(Anno, 203),
-                    lists:sublist(Text, length(Text) - 1);
-                false ->
-                    Text
-            end;
+    Suffix = lists:nthtail(length(Text) - 2, Text),
+    case Suffix of
+        [$\r, $\n] ->
+            ?EMILIO_REPORT(Anno, 203),
+            lists:sublist(Text, length(Text) - 2);
         _ ->
             Text
-    end.
+    end;
+
+check_line_ending(Text, _) ->
+    Text.
 
 
 check_not_space(_Anno, []) ->

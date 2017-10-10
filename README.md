@@ -20,8 +20,8 @@ Implemented Checks
 
 * 2XX White Space Checks
     * 201 white space contains tabs
-    * 202 white space contains form feed
-    * 203 line ending has form feed
+    * 202 white space contains carriage return
+    * 203 line ending has carriage return
     * 204 whitespace contains invalid control or unicode code point
     * 210 file does not end with a single newline
     * 221 white space before comma
