@@ -65,6 +65,9 @@
 ]).
 
 
+fold_tokens(_, Acc, []) ->
+    Acc;
+
 fold_tokens(UserFun, Acc, [CurrLine | RestLines]) ->
     Ctx = #ctx{
         prev_lines = [],
