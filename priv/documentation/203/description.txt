@@ -1,0 +1,3 @@
+Emilio expects to see Unix-style line endings in source code. Modern
+VCS software can automatically translate line endings dynamically
+for users of platforms that do not use Unix-style line endings.

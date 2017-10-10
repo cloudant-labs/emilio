@@ -1,0 +1,3 @@
+Source code files should not contain whitespace other than spaces and
+new lines. Editors that insert unicode or other non-standard white space
+should be configured to avoid that behavior.
