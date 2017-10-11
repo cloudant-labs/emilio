@@ -1,0 +1,38 @@
+#!/usr/bin/env python
+
+import os
+import sys
+
+
+def code_from_filename(fname):
+    dname = os.path.dirname(fname)
+    return os.path.basename(dname)
+
+
+def main():
+    if len(sys.argv) != 2:
+        print "usage: %s whitelist" % sys.argv[0]
+        exit(1)
+
+    fnames = {}
+
+    with open(sys.argv[1]) as handle:
+        for line in handle:
+            bits = line.split(",")
+            fname = bits[0]
+            if os.path.basename(fname) == "good.erl":
+                print "Error in file: %s" % fname
+                exit(2)
+            fnames.setdefault(bits[0], 0)
+            code = code_from_filename(fname)
+            if code == bits[3]:
+                fnames[bits[0]] += 1
+
+    for fname in sorted(fnames.keys()):
+        if fnames[fname] == 0:
+            print "Missing example error in %s" % fname
+            exit(3)
+
+
+if __name__ == "__main__":
+    main()

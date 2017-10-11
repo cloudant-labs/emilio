@@ -9,6 +9,7 @@ script:
 check: script
 	./emilio -c emilio.config src/
 	./emilio -w priv/documentation/whitelist priv/documentation
+	./test/check-whitelist priv/documentation/whitelist
 
 
 whitelist: script
