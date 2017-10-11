@@ -1,7 +1,8 @@
 
 ex_case(Car) ->
     case start_ignition(Car) of
-    started -> ok;
+    started ->
+        ok;
     {not_started, Reason} when Reason == ford ->
             obviously;
             Else ->

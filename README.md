@@ -45,6 +45,7 @@ Implemented Checks
 | [124](priv/documentation/124/description.md) | [good](priv/documentation/124/good.erl) | [bad](priv/documentation/124/bad.erl) | Indentation for line breaks at operators should increase by two levels |
 | [125](priv/documentation/125/description.md) | [good](priv/documentation/125/good.erl) | [bad](priv/documentation/125/bad.erl) | Indentation for clause bodies should increase by at least one level |
 | [126](priv/documentation/126/description.md) | [good](priv/documentation/126/good.erl) | [bad](priv/documentation/126/bad.erl) | Indentation for expression spans should increase by at least two levels |
+| [127](priv/documentation/127/description.md) | [good](priv/documentation/127/good.erl) | [bad](priv/documentation/127/bad.erl) | Clause bodies should be all inline or multiline |
 | [130](priv/documentation/130/description.md) | [good](priv/documentation/130/good.erl) | [bad](priv/documentation/130/bad.erl) | Exports should be indented one level |
 | [201](priv/documentation/201/description.md) | [good](priv/documentation/201/good.erl) | [bad](priv/documentation/201/bad.erl) | Whitespace should not contain tabs |
 | [202](priv/documentation/202/description.md) | [good](priv/documentation/202/good.erl) | [bad](priv/documentation/202/bad.erl) | Whitespace should not contain carriage returns |
