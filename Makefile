@@ -21,14 +21,9 @@ whitelist: script
 		> priv/documentation/whitelist; true
 
 
-clone-projects:
-	@mkdir -p test
-	@cd test && ../bin/clone-projects.sh
-
-
 check-projects: script
 	@mkdir -p test
-	@cd test && ../bin/check-projects.sh
+	@bin/check-projects test/projects.txt
 
 
-.PHONY: script readme whitelist check-projects clone-projects
+.PHONY: script readme whitelist check-projects
