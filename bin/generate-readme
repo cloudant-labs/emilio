@@ -1,0 +1,90 @@
+#!/usr/bin/env python
+
+import os
+import textwrap
+
+
+FRONT = """\
+    Emilio - The friendly butler who checks your Erlang coding style
+    ===
+
+    Emilio is a fairly opinionated style check for Erlang which
+    looks to promote consistency, readability, and portability
+    between developers.
+
+    While Emilio attempts to check a large number of common cases
+    of styles it is by no means exhaustive. Just because Emilio
+    does not report any errors does not mean a particular source
+    file has no style issues. Although hopefully the number of checks
+    that do exist will lead developers to making similar decisions
+    in the uncovered situations. And as with any given project,
+    there can always be more checks added in the future.
+"""
+
+
+BACK = """\
+    Adding a Check
+    ---
+
+    To add a new check to emilio you'll need to first implement your check
+    as a module. The existing `emilio_check_*` modules should provide
+    decent guidance on the implementation. To include the check you should
+    add the module name to the list in `emilio.hrl` so that its executed.
+
+
+    Exercising Emilio
+    ---
+
+    You can exercise Emilio on a number of open source projects
+    easily by runninng:
+
+        make clone-projects
+        make check-projects
+
+    The list of projects can be found [here](test/projects.txt).
+"""
+
+DOCS_DIR = "priv/documentation"
+
+
+def print_check_list():
+    print "Implemented Checks"
+    print "---"
+    print
+
+    for code in sorted(os.listdir(DOCS_DIR)):
+        if code == "whitelist":
+            continue
+
+        dname = os.path.join(DOCS_DIR, code)
+        if not os.path.isdir(dname):
+            print "Invalid doc directory: %s" % dname
+            exit(1)
+
+        descr_path = os.path.join(dname, "description.txt")
+
+        with open(descr_path) as handle:
+            subj = handle.readline().rstrip()
+        if len(subj) > 72:
+            exit(2)
+
+        row = [
+            "",
+            "[%s](%s)" % (code, descr_path),
+            "[good](%s)" % os.path.join(dname, "good.erl"),
+            "[bad](%s)" % os.path.join(dname, "bad.erl"),
+            subj,
+            ""
+        ]
+
+        print " | ".join(row)
+
+
+def main():
+    print textwrap.dedent(FRONT)
+    print_check_list()
+    print textwrap.dedent(BACK)
+
+
+if __name__ == "__main__":
+    main()

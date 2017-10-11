@@ -12,6 +12,10 @@ check: script
 	./bin/check-whitelist priv/documentation/whitelist
 
 
+readme:
+	./bin/generate-readme > README.md
+
+
 whitelist: script
 	./emilio -f csv priv/documentation | tail -n +2 \
 		> priv/documentation/whitelist; true
@@ -27,4 +31,4 @@ check-projects: script
 	@cd test && ../bin/check-projects.sh
 
 
-.PHONY: script check-projects clone-projects
+.PHONY: script readme whitelist check-projects clone-projects
