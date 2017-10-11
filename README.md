@@ -13,6 +13,18 @@ that do exist will lead developers to making similar decisions
 in the uncovered situations. And as with any given project,
 there can always be more checks added in the future.
 
+Building Emilio
+---
+
+```
+$ git clone https://github.com/cloudant-labs/emilio
+$ cd emilio/
+$ make
+```
+
+This produces a self contained `emilio` executable which you can then
+place anywhere on your path as desired.
+
 Usage
 ---
 
