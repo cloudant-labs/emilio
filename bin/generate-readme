@@ -32,6 +32,10 @@ BACK = """\
     decent guidance on the implementation. To include the check you should
     add the module name to the list in `emilio.hrl` so that its executed.
 
+    Once your check is implemented you'll then want to add entries in
+    `priv/documentation/` for each error code it generates. Make sure
+    to follow the existing style for description.md so that the
+    README.md generation works correctly.
 
     Exercising Emilio
     ---
