@@ -1,3 +1,5 @@
+Indentation should not increase by more than two levels
+
 Changes in indentation should be used to indicate the logical
 structure of the code. These changes should also follow logical
 rules for when they are applied. Since there's never a reason

@@ -1,2 +1,5 @@
-Export groups for behavior callbacks should follow the same
-order as the declared behaviors.
+Export groups should follow the order of declared behaviors
+
+This allows developers to be able to find behavior related callbacks
+more quickly as they can scan code more quickly looking for their
+specific code of interest.
