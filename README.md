@@ -33,6 +33,12 @@ Usage: ./emilio [-h <help>] [-c <config>] [-i <ignore>] [-j <jobs>]
 Implemented Checks
 ---
 
+  * 1xx - Indentation
+  * 2xx - Whitespace
+  * 3xx - Blank Lines
+  * 4xx - Exports and Imports
+  * 5xx - Line Length
+  * 6xx - Anti-Patterns
 
 | Code | Good | Bad | Description |
 | :--- | :--- | :--- | :--- |
@@ -79,7 +85,7 @@ Implemented Checks
 | [421](priv/documentation/421/description.md) | [good](priv/documentation/421/good.erl) | [bad](priv/documentation/421/bad.erl) | Do not mix private functions with exported functions |
 | [501](priv/documentation/501/description.md) | [good](priv/documentation/501/good.erl) | [bad](priv/documentation/501/bad.erl) | Limit source lines to 80 columns |
 | [601](priv/documentation/601/description.md) | [good](priv/documentation/601/good.erl) | [bad](priv/documentation/601/bad.erl) | Do not re-use underscore prefixed variable names |
-| [701](priv/documentation/701/description.md) | [good](priv/documentation/701/good.erl) | [bad](priv/documentation/701/bad.erl) | Cases should have more than one clause |
+| [602](priv/documentation/602/description.md) | [good](priv/documentation/602/good.erl) | [bad](priv/documentation/602/bad.erl) | Cases should have more than one clause |
 
 
 Adding a Check

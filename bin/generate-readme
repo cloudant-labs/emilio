@@ -51,6 +51,12 @@ def print_check_list():
     print "Implemented Checks"
     print "---"
     print
+    print "  * 1xx - Indentation"
+    print "  * 2xx - Whitespace"
+    print "  * 3xx - Blank Lines"
+    print "  * 4xx - Exports and Imports"
+    print "  * 5xx - Line Length"
+    print "  * 6xx - Anti-Patterns"
     print
     print "| Code | Good | Bad | Description |"
     print "| :--- | :--- | :--- | :--- |"

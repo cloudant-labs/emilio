@@ -10,7 +10,7 @@
 % License for the specific language governing permissions and limitations under
 % the License.
 
--module(emilio_check_logic_case).
+-module(emilio_check_anti_case).
 
 -export([
     format_error/2,
@@ -21,7 +21,7 @@
 -include("emilio.hrl").
 
 
-format_error(701, _) ->
+format_error(602, _) ->
     "case statement with a single clause".
 
 
@@ -30,6 +30,6 @@ run(Lines) ->
 
 
 check_case_clauses(_, {'case', Anno, 1}) ->
-    ?EMILIO_REPORT(Anno, 701);
+    ?EMILIO_REPORT(Anno, 602);
 check_case_clauses(_, _) ->
     ok.
