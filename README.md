@@ -16,6 +16,9 @@ there can always be more checks added in the future.
 Implemented Checks
 ---
 
+
+| Code | Good | Bad | Description |
+| --- | --- | --- | --- |
 | [111](priv/documentation/111/description.txt) | [good](priv/documentation/111/good.erl) | [bad](priv/documentation/111/bad.erl) | Indentation should be a multiple of the configured `indentation_count` |
 | [112](priv/documentation/112/description.txt) | [good](priv/documentation/112/good.erl) | [bad](priv/documentation/112/bad.erl) | Indentation should not increase by more than two levels |
 | [120](priv/documentation/120/description.txt) | [good](priv/documentation/120/good.erl) | [bad](priv/documentation/120/bad.erl) | Indentation should match for corresponding tokens |
