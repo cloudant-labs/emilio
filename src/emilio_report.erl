@@ -62,7 +62,11 @@ queue(FileName) ->
     gen_server:call(?MODULE, {queue, FileName}, infinity).
 
 
-update(FileName, Module, Anno, Code, Arg) ->
+update(FileName, Module, Anno, Code, Arg) when
+        is_list(FileName),
+        is_atom(Module),
+        (is_list(Anno) orelse is_tuple(Anno)),
+        is_integer(Code) ->
     {Line, Col} = emilio_anno:lc(Anno),
     WLObj = {FileName, Line, Col, Code, '_'},
     case ets:match_object(?WHITELIST, WLObj) of

@@ -40,7 +40,6 @@ run(Lines) ->
 
 
 check_reuse(Token, _, {Refs, RefVars}) ->
-    %io:format(standard_error, "~p :: ~p :: ~p~n", [Token, Refs, RefVars]),
     {NewRefs, NewRefVars} = case {element(1, Token), Refs, RefVars} of
         {function, [], []} ->
             Ref = emilio_anno:ref(Token),

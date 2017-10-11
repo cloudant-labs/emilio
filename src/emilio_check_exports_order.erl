@@ -69,7 +69,7 @@ check_order(Exports, Functions, PrevFun, AllExports) ->
     if
         FName == Export andalso FArity == EArity ->
             % Found an expected function, carry on
-            check_order(RestExports, RestFunctions, Export, AllExports);
+            check_order(RestExports, RestFunctions, Function, AllExports);
         FName == PrevFun andalso not IsExported ->
             check_order(Exports, RestFunctions, PrevFun, AllExports);
         IsExported ->

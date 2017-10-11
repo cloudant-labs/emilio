@@ -553,10 +553,11 @@ linearize_expr({bin, Anno, Elems}, Depth) ->
 
 linearize_expr({bin_element, Anno, Expr, Size, TSL}, Depth) ->
     Linearized = linearize_expr(Expr, Depth),
-    EndAnno = element(2, lists:last(Linearized)),
+    EndAnno0 = element(2, lists:last(Linearized)),
+    EndAnno1 = lists:keydelete(ref, 1, EndAnno0),
     reposition([set_depth({bin_element, Anno}, Depth)]
             ++ Linearized
-            ++ [{bin_size, EndAnno, Size}, {bin_tsl, EndAnno, TSL}]);
+            ++ [{bin_size, EndAnno1, Size}, {bin_tsl, EndAnno1, TSL}]);
 
 linearize_expr({op, Anno, Op, Left, Right}, Depth) ->
     LinearLeft = linearize_expr(Left, Depth),
@@ -574,7 +575,12 @@ linearize_expr({record, Anno, Name, Fields}, Depth) ->
 
 linearize_expr({record, Anno, Expr, Name, Fields}, Depth) ->
     LinearExpr = linearize_expr(Expr, Depth),
-    Sep = [{sep, [{depth, Depth}]}],
+    Sep = case length(Fields) > 0 of
+        true ->
+            [{sep, [{depth, Depth}]}];
+        false ->
+            []
+    end,
     reposition([set_depth({record_update, Anno, Name, length(Fields)}, Depth)]
             ++ LinearExpr
             ++ Sep
@@ -603,7 +609,12 @@ linearize_expr({map, Anno, Assocs}, Depth) ->
 
 linearize_expr({map, Anno, Expr, Assocs}, Depth) ->
     LinearExpr = linearize_expr(Expr, Depth),
-    Sep = [{sep, [{depth, Depth}]}],
+    Sep = case length(Assocs) > 0 of
+        true ->
+            [{sep, [{depth, Depth}]}];
+        false ->
+            []
+    end,
     reposition([set_depth({map_update, Anno, length(Assocs)}, Depth)]
             ++ LinearExpr
             ++ Sep
@@ -634,8 +645,11 @@ linearize_expr({'catch', Anno, Expr}, Depth) ->
 linearize_expr({call, Anno, {remote, Anno, Mod, Fun}, Args}, Depth) ->
     LinearMod = linearize_expr(Mod, Depth),
     Sep1 = [{sep, [{depth, Depth}]}],
-    Sep2 = if length(Args) == 0 -> []; true ->
-        [{sep, [{depth, Depth}]}]
+    Sep2 = case length(Args) > 0 of
+        true ->
+            [{sep, [{depth, Depth}]}];
+        false ->
+            []
     end,
     LinearFun = linearize_expr(Fun, Depth),
     reposition([set_depth({call_remote, Anno, length(Args)}, Depth)]
@@ -647,8 +661,11 @@ linearize_expr({call, Anno, {remote, Anno, Mod, Fun}, Args}, Depth) ->
 
 linearize_expr({call, Anno, Fun, Args}, Depth) ->
     LinearFun = linearize_expr(Fun, Depth),
-    Sep = if length(Args) == 0 -> []; true ->
-        [{sep, [{depth, Depth}]}]
+    Sep = case length(Args) > 0 of
+        true ->
+            [{sep, [{depth, Depth}]}];
+        false ->
+            []
     end,
     reposition([set_depth({call, Anno, length(Args)}, Depth)]
             ++ LinearFun
@@ -657,7 +674,12 @@ linearize_expr({call, Anno, Fun, Args}, Depth) ->
 
 linearize_expr({lc, Anno, Template, Qualifiers}, Depth) ->
     LinearTemplate = linearize_expr(Template, Depth),
-    Sep = [{sep, [{depth, Depth}]}],
+    Sep = case length(Qualifiers) > 0 of
+        true ->
+            [{sep, [{depth, Depth}]}];
+        false ->
+            []
+    end,
     reposition([set_depth({lc, Anno, length(Qualifiers)}, Depth)]
             ++ LinearTemplate
             ++ Sep
@@ -665,7 +687,12 @@ linearize_expr({lc, Anno, Template, Qualifiers}, Depth) ->
 
 linearize_expr({bc, Anno, Template, Qualifiers}, Depth) ->
     LinearTemplate = linearize_expr(Template, Depth),
-    Sep = [{sep, [{depth, Depth}]}],
+    Sep = case length(Qualifiers) > 0 of
+        true ->
+            [{sep, [{depth, Depth}]}];
+        false ->
+            []
+    end,
     reposition([set_depth({bc, Anno, length(Qualifiers)}, Depth)]
             ++ LinearTemplate
             ++ Sep
