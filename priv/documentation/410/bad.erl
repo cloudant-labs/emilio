@@ -1,3 +1,4 @@
+
 -module(bad).
 -behavior(gen_server).
 -behavior(application).

@@ -1,1 +1,2 @@
-There should be no more than two consecutive blank lines.
+There should be no more than two consecutive blank lines at the
+module level.

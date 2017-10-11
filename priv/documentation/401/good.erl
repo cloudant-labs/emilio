@@ -1,3 +1,4 @@
+
 -module(good).
 -behavior(nice).
 

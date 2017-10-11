@@ -1,2 +1,0 @@
--define(GOOD, hooray).
-    -define(BAD, not_hooray).
