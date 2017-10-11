@@ -100,8 +100,8 @@ def print_usage():
 
 def main():
     print textwrap.dedent(FRONT)
-    print_check_list()
     print_usage()
+    print_check_list()
     print textwrap.dedent(BACK)
 
 

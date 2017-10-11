@@ -13,6 +13,23 @@ that do exist will lead developers to making similar decisions
 in the uncovered situations. And as with any given project,
 there can always be more checks added in the future.
 
+Usage
+---
+
+```
+Usage: ./emilio [-h <help>] [-c <config>] [-i <ignore>] [-j <jobs>]
+                [-f <report_formatter>] [-w <whitelist>] path [path ...]
+
+  -h, --help       Show this help message
+  -c, --config     The config file to use [default: emilio.cfg]
+  -i, --ignore     Ignore any file path matching the specified glob
+  -j, --jobs       Number of files to process in parallel [default: 4]
+  -f, --format     Set the output format [default: text]
+  -w, --whitelist  A CSV file of filename,line,column,code reports to 
+                   ignore
+  path             Paths to process, directories are searched recursively
+```
+
 Implemented Checks
 ---
 
@@ -63,23 +80,6 @@ Implemented Checks
 | [601](priv/documentation/601/description.md) | [good](priv/documentation/601/good.erl) | [bad](priv/documentation/601/bad.erl) | Do not re-use underscore prefixed variable names |
 | [701](priv/documentation/701/description.md) | [good](priv/documentation/701/good.erl) | [bad](priv/documentation/701/bad.erl) | Cases should have more than one clause |
 
-
-Usage
----
-
-```
-Usage: ./emilio [-h <help>] [-c <config>] [-i <ignore>] [-j <jobs>]
-                [-f <report_formatter>] [-w <whitelist>] path [path ...]
-
-  -h, --help       Show this help message
-  -c, --config     The config file to use [default: emilio.cfg]
-  -i, --ignore     Ignore any file path matching the specified glob
-  -j, --jobs       Number of files to process in parallel [default: 4]
-  -f, --format     Set the output format [default: text]
-  -w, --whitelist  A CSV file of filename,line,column,code reports to 
-                   ignore
-  path             Paths to process, directories are searched recursively
-```
 
 Adding a Check
 ---
