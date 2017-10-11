@@ -92,27 +92,18 @@ collect_clause(Token, Ctx, Ref) ->
 
 
 find_span_start(Ctx, Ref) ->
-    IterFun = fun(Token, _, _) ->
-        case element(1, Token) of
-            span_start ->
-                case emilio_anno:parent_ref(Token) == Ref of
-                    true ->
-                        {stop, Token};
-                    false ->
-                        {continue, not_found}
-                end;
-            _ ->
-                {continue, not_found}
-        end
-    end,
-    emilio_lib:iter_fwd(Ctx, IterFun, not_found).
+    find_span(Ctx, Ref, span_end, parent_ref).
 
 
 find_span_end(Ctx, Ref) ->
+    find_span(Ctx, Ref, span_end, ref).
+
+
+find_span(Ctx, Ref, Type, RefFun) ->
     IterFun = fun(Token, _, _) ->
         case element(1, Token) of
-            span_end ->
-                case emilio_anno:ref(Token) == Ref of
+            Type ->
+                case emilio_anno:RefFun(Token) == Ref of
                     true ->
                         {stop, Token};
                     false ->
