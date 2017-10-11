@@ -1,0 +1,2 @@
+Export groups for behavior callbacks should follow the same
+order as the declared behaviors.

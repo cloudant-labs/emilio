@@ -1,0 +1,2 @@
+Private functions in a module should be placed below all exported
+functions in a module.

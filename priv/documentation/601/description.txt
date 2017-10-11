@@ -1,0 +1,3 @@
+The underscore prefix is used to document unused variables. Using these
+variables in computations violates that role and when used as such usually
+leads to subtle bugs around bad matches.

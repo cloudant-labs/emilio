@@ -1,0 +1,5 @@
+Imports unfortunately remove the name assocation of functions
+from their local calling context. This means that developers
+reading the code have to memorize the list of imports for a given
+module or be constantly surprised when a local definition doesn't
+exist.

@@ -1,0 +1,2 @@
+Functions in a module should follow the same order as the declared
+exports to improve developers ability to navigate source code.

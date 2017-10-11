@@ -1,0 +1,2 @@
+The only attributes that should exist before exports are
+module and behavior attributes.

@@ -1,0 +1,4 @@
+Exports should be grouped logically based on public API, behavior
+callbacks, and then any exported functions required for private
+use by the module. Maintaining a logically consistent order and
+grouping communicates a functions purpose to other developers.

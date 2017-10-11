@@ -1,0 +1,2 @@
+Export groups for known behaviors should have functions ordered
+logically and consistently.
