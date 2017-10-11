@@ -60,7 +60,7 @@ Implemented Checks
 * 6xx Anti-patterns
     * 601 _Variable reused
 
-* 7xx logical analysis?
+* 7xx Logical Analysis
     * 701 case statement with single clause?
 
 * 9XX Internal Errors

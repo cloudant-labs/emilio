@@ -136,3 +136,4 @@ priv/documentation/421/bad.erl,29,1,421,"private function do_private_helper/1 fo
 priv/documentation/501/bad.erl,3,1,501,"line longer than 80 characters"
 priv/documentation/601/bad.erl,2,15,601,"underscore varibale _SomeVar reused"
 priv/documentation/601/bad.erl,7,5,601,"underscore varibale _SomeVar reused"
+priv/documentation/701/bad.erl,3,5,701,"case statement with a single clause"
