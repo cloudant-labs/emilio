@@ -5,7 +5,7 @@ import textwrap
 
 
 FRONT = """\
-    Emilio - The friendly butler who checks your Erlang coding style
+    Emilio - The Helpful Style Checking Butler for CouchDB
     ===
 
     Emilio is a fairly opinionated style check for Erlang which
