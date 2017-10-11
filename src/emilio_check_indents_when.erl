@@ -13,8 +13,6 @@
 -module(emilio_check_indents_when).
 
 -export([
-    codes/0,
-    explain/1,
     format_error/2,
     run/1
 ]).
@@ -32,15 +30,6 @@
     fun_clause,
     named_fun_clause
 ]).
-
-
-codes() ->
-    [122].
-
-
-explain(122) ->
-    "When should be indented two levels so its not confused with "
-    "the clause body.".
 
 
 format_error(122, {Token, Levels}) ->

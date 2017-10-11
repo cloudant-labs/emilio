@@ -13,25 +13,12 @@
 -module(emilio_check_nl_fun_clauses).
 
 -export([
-    codes/0,
-    explain/1,
     format_error/2,
     run/1
 ]).
 
 
 -include("emilio.hrl").
-
-
-codes() ->
-    [310, 311].
-
-
-explain(310) ->
-    "There should be zero or one empty lines between function clauses";
-explain(311) ->
-    "There should be a consistent number of"
-        " empty lines between function clauses".
 
 
 format_error(310, Count) ->

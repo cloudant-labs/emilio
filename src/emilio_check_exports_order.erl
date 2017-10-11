@@ -13,26 +13,12 @@
 -module(emilio_check_exports_order).
 
 -export([
-    codes/0,
-    explain/1,
     format_error/2,
     run/1
 ]).
 
 
 -include("emilio.hrl").
-
-
-codes() ->
-    [420, 421].
-
-
-explain(420) ->
-    "Exports and functions should follow the same order";
-explain(421) ->
-    "Private functions should come after exported functions";
-explain(422) ->
-    "Missing definition of exported function".
 
 
 format_error(420, {{Export, EArity}, {Function, FArity}}) ->

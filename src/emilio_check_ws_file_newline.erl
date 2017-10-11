@@ -13,22 +13,12 @@
 -module(emilio_check_ws_file_newline).
 
 -export([
-    codes/0,
-    explain/1,
     format_error/2,
     run/1
 ]).
 
 
 -include("emilio.hrl").
-
-
-codes() ->
-    [210].
-
-
-explain(210) ->
-    "Files should end with a single newline.".
 
 
 format_error(210, Count) ->

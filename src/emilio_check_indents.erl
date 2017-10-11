@@ -13,22 +13,12 @@
 -module(emilio_check_indents).
 
 -export([
-    codes/0,
-    explain/1,
     format_error/2,
     run/1
 ]).
 
 
 -include("emilio.hrl").
-
-
-codes() ->
-    [112].
-
-
-explain(112) ->
-    "Indentation should only increase by one or two levels".
 
 
 format_error(112, Levels) ->

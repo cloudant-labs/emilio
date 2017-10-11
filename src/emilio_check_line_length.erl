@@ -13,22 +13,12 @@
 -module(emilio_check_line_length).
 
 -export([
-    codes/0,
-    explain/1,
     format_error/2,
     run/1
 ]).
 
 
 -include("emilio.hrl").
-
-
-codes() ->
-    [501].
-
-
-explain(501) ->
-    "Long lines suck.".
 
 
 format_error(501, MaxLength) ->

@@ -13,24 +13,12 @@
 -module(emilio_check_ws_parens).
 
 -export([
-    codes/0,
-    explain/1,
     format_error/2,
     run/1
 ]).
 
 
 -include("emilio.hrl").
-
-
-codes() ->
-    [230, 231].
-
-
-explain(230) ->
-    "There should be no whitespace after a (";
-explain(231) ->
-    "There should be no whitespace before a )".
 
 
 format_error(230, _) ->

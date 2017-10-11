@@ -13,24 +13,12 @@
 -module(emilio_check_indents_spans).
 
 -export([
-    codes/0,
-    explain/1,
     format_error/2,
     run/1
 ]).
 
 
 -include("emilio.hrl").
-
-
-codes() ->
-    [125, 126].
-
-
-explain(125) ->
-    "Indentation level for clause bodies should increase by at least 1";
-explain(126) ->
-    "Indentation level for expression spans should increase by at least 2".
 
 
 format_error(125, _) ->

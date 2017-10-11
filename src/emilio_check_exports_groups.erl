@@ -13,8 +13,6 @@
 -module(emilio_check_exports_groups).
 
 -export([
-    codes/0,
-    explain/1,
     format_error/2,
     run/1
 ]).
@@ -47,22 +45,6 @@
         {init, 1}
     ]}
 ]).
-
-
-codes() ->
-    [410, 411, 412, 413].
-
-
-explain(410) ->
-    "There should be an export group per behavior "
-        "plus to optional export groups";
-explain(411) ->
-    "There should be an export group per behavior "
-        "plus to optional export groups";
-explain(412) ->
-    "Export groups should follow the behavior order";
-explain(413) ->
-    "Known export groups for behaviors should be ordered correctly".
 
 
 format_error(410, {NumBehaviors, NumExports}) ->

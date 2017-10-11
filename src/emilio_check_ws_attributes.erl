@@ -13,22 +13,12 @@
 -module(emilio_check_ws_attributes).
 
 -export([
-    codes/0,
-    explain/1,
     format_error/2,
     run/1
 ]).
 
 
 -include("emilio.hrl").
-
-
-codes() ->
-    [225].
-
-
-explain(225) ->
-    "attributes should start in the first column of the line".
 
 
 format_error(225, _) ->

@@ -13,22 +13,12 @@
 -module(emilio_check_indents_counts).
 
 -export([
-    codes/0,
-    explain/1,
     format_error/2,
     run/1
 ]).
 
 
 -include("emilio.hrl").
-
-
-codes() ->
-    [111].
-
-
-explain(111) ->
-    "White space is important".
 
 
 format_error(111, Count) ->

@@ -13,28 +13,12 @@
 -module(emilio_check_ws_lists).
 
 -export([
-    codes/0,
-    explain/1,
     format_error/2,
     run/1
 ]).
 
 
 -include("emilio.hrl").
-
-
-codes() ->
-    [240, 241, 242, 243].
-
-
-explain(240) ->
-    "There should be no whitespace after a [";
-explain(241) ->
-    "There should be no whitespace before a ]";
-explain(242) ->
-    "There should be whitespace before a |";
-explain(243) ->
-    "There should be whitespace after a |".
 
 
 format_error(240, _) ->

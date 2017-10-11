@@ -13,24 +13,12 @@
 -module(emilio_check_exports_decl).
 
 -export([
-    codes/0,
-    explain/1,
     format_error/2,
     run/1
 ]).
 
 
 -include("emilio.hrl").
-
-
-codes() ->
-    [401, 402].
-
-
-explain(401) ->
-    "Only module and behavior attributes are allowed before exports";
-explain(402) ->
-    "Imports should not be used".
 
 
 format_error(401, Name) ->

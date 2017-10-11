@@ -13,22 +13,12 @@
 -module(emilio_check_anti_underscores).
 
 -export([
-    codes/0,
-    explain/1,
     format_error/2,
     run/1
 ]).
 
 
 -include("emilio.hrl").
-
-
-codes() ->
-    [601].
-
-
-explain(601) ->
-    "Underscore prefixed variables should not be reused".
 
 
 format_error(601, Name) ->

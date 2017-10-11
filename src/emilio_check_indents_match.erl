@@ -13,22 +13,12 @@
 -module(emilio_check_indents_match).
 
 -export([
-    codes/0,
-    explain/1,
     format_error/2,
     run/1
 ]).
 
 
 -include("emilio.hrl").
-
-
-codes() ->
-    [120].
-
-
-explain(120) ->
-    "Indentation for various tokens should match when split across lines".
 
 
 format_error(120, {Start, StartIndent, End, EndIndent}) ->

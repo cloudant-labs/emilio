@@ -13,28 +13,12 @@
 -module(emilio_check_ws_spaces_only).
 
 -export([
-    codes/0,
-    explain/1,
     format_error/2,
     run/1
 ]).
 
 
 -include("emilio.hrl").
-
-
-codes() ->
-    [201, 202, 203, 204].
-
-
-explain(201) ->
-    "Tabs are bad, mmmkay!";
-explain(202) ->
-    "Form feeds are bad, mmmkay!";
-explain(203) ->
-    "Just Say No to Windows Line Endings.";
-explain(204) ->
-    "Don't use weird control or unicode code points in white space".
 
 
 format_error(201, _) ->

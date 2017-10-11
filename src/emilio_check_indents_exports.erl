@@ -13,22 +13,12 @@
 -module(emilio_check_indents_exports).
 
 -export([
-    codes/0,
-    explain/1,
     format_error/2,
     run/1
 ]).
 
 
 -include("emilio.hrl").
-
-
-codes() ->
-    [130].
-
-
-explain(130) ->
-    "export attribute ".
 
 
 format_error(130, {Indent, Column}) ->

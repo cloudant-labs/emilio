@@ -13,24 +13,12 @@
 -module(emilio_check_indents_op2).
 
 -export([
-    codes/0,
-    explain/1,
     format_error/2,
     run/1
 ]).
 
 
 -include("emilio.hrl").
-
-
-codes() ->
-    [123, 124].
-
-
-explain(123) ->
-    "indentation does not increase two levels after trailing operator";
-explain(124) ->
-    "indentation does not increase two levels with prefixed operator".
 
 
 format_error(123, Op) ->

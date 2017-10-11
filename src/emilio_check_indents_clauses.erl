@@ -13,22 +13,12 @@
 -module(emilio_check_indents_clauses).
 
 -export([
-    codes/0,
-    explain/1,
     format_error/2,
     run/1
 ]).
 
 
 -include("emilio.hrl").
-
-
-codes() ->
-    [121].
-
-
-explain(121) ->
-    "Indentation for clauses should increase by one level".
 
 
 format_error(121, {Token, Levels}) ->

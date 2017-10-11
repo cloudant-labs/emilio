@@ -13,24 +13,12 @@
 -module(emilio_check_ws_misc).
 
 -export([
-    codes/0,
-    explain/1,
     format_error/2,
     run/1
 ]).
 
 
 -include("emilio.hrl").
-
-
-codes() ->
-    [223, 224].
-
-
-explain(223) ->
-    "There should be no whitespace before a semicolon";
-explain(224) ->
-    "There should be no whitespace before a dot".
 
 
 format_error(223, _) ->

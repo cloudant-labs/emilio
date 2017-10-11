@@ -13,24 +13,12 @@
 -module(emilio_check_ws_commas).
 
 -export([
-    codes/0,
-    explain/1,
     format_error/2,
     run/1
 ]).
 
 
 -include("emilio.hrl").
-
-
-codes() ->
-    [221, 222].
-
-
-explain(221) ->
-    "There should be no whitespace before a comma";
-explain(222) ->
-    "Commas should be followed by a single space or a newline".
 
 
 format_error(221, _) ->

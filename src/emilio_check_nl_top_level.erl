@@ -13,24 +13,12 @@
 -module(emilio_check_nl_top_level).
 
 -export([
-    codes/0,
-    explain/1,
     format_error/2,
     run/1
 ]).
 
 
 -include("emilio.hrl").
-
-
-codes() ->
-    [301, 302].
-
-
-explain(301) ->
-    "There should not be more than two consecutive empty lines";
-explain(302) ->
-    "There should be two empty lines betwen functions".
 
 
 format_error(301, Count) ->

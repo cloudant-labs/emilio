@@ -13,22 +13,12 @@
 -module(emilio_check_logic_case).
 
 -export([
-    codes/0,
-    explain/1,
     format_error/2,
     run/1
 ]).
 
 
 -include("emilio.hrl").
-
-
-codes() ->
-    [701].
-
-
-explain(701) ->
-    "Case statements with a single clause should be a pattern match".
 
 
 format_error(701, _) ->
