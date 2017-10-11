@@ -67,6 +67,7 @@ Implemented Checks
     * 901 Unscanable source
     * 902 Unparseable form
     * 903 Internal error
+    * 904 Untriggered whitelist entry
 
 
 Adding a Check
