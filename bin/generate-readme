@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 import os
+import subprocess as sp
 import textwrap
 
 
@@ -86,9 +87,21 @@ def print_check_list():
     print
 
 
+def print_usage():
+    print "Usage"
+    print "---"
+    print
+    print "```"
+    out = sp.check_output("./emilio -h", shell=True, stderr=sp.STDOUT)
+    print out
+    print "```"
+    print
+
+
 def main():
     print textwrap.dedent(FRONT)
     print_check_list()
+    print_usage()
     print textwrap.dedent(BACK)
 
 

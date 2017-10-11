@@ -12,7 +12,7 @@ check: script
 	./bin/check-whitelist priv/documentation/whitelist
 
 
-readme:
+readme: script
 	./bin/generate-readme > README.md
 
 
