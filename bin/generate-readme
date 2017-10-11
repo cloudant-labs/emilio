@@ -93,7 +93,7 @@ def print_usage():
     print
     print "```"
     out = sp.check_output("./emilio -h", shell=True, stderr=sp.STDOUT)
-    print out
+    print out.strip()
     print "```"
     print
 

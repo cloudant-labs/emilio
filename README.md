@@ -79,8 +79,6 @@ Usage: ./emilio [-h <help>] [-c <config>] [-i <ignore>] [-j <jobs>]
   -w, --whitelist  A CSV file of filename,line,column,code reports to 
                    ignore
   path             Paths to process, directories are searched recursively
-
-
 ```
 
 Adding a Check
