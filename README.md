@@ -96,7 +96,6 @@ Exercising Emilio
 You can exercise Emilio on a number of open source projects
 easily by runninng:
 
-    make clone-projects
     make check-projects
 
 The list of projects can be found [here](test/projects.txt).
