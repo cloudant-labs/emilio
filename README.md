@@ -10,8 +10,8 @@ of styles it is by no means exhaustive. Just because Emilio
 does not report any errors does not mean a particular source
 file has no style issues. Although hopefully the number of checks
 that do exist will lead developers to making similar decisions
-in the uncovered situations. And as with any given project,
-there can always be more checks added in the future.
+in the uncovered situations. And obivously there can always be
+more checks added in the future.
 
 Building Emilio
 ---
