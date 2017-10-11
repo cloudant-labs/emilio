@@ -9,7 +9,7 @@ script:
 check: script
 	./emilio -c emilio.config src/
 	./emilio -w priv/documentation/whitelist priv/documentation
-	./test/check-whitelist priv/documentation/whitelist
+	./bin/check-whitelist priv/documentation/whitelist
 
 
 whitelist: script
@@ -18,11 +18,13 @@ whitelist: script
 
 
 clone-projects:
-	@cd test && ./clone-projects.sh
+	@mkdir -p test
+	@cd test && ../bin/clone-projects.sh
 
 
 check-projects: script
-	@cd test && ./check-projects.sh
+	@mkdir -p test
+	@cd test && ../bin/check-projects.sh
 
 
 .PHONY: script check-projects clone-projects
