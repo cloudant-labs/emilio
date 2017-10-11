@@ -51,6 +51,9 @@ def print_check_list():
     print "Implemented Checks"
     print "---"
     print
+    print
+    print "| Code | Good | Bad | Description |"
+    print "| :--- | :--- | :--- | :--- |"
 
     for code in sorted(os.listdir(DOCS_DIR)):
         if code == "whitelist":
@@ -61,7 +64,7 @@ def print_check_list():
             print "Invalid doc directory: %s" % dname
             exit(1)
 
-        descr_path = os.path.join(dname, "description.txt")
+        descr_path = os.path.join(dname, "description.md")
 
         with open(descr_path) as handle:
             subj = handle.readline().rstrip()
@@ -77,7 +80,10 @@ def print_check_list():
             ""
         ]
 
-        print " | ".join(row)
+        print " | ".join(row).strip()
+
+    print
+    print
 
 
 def main():

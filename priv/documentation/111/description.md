@@ -1,4 +1,4 @@
-Indentation should be a multiple of the configured indentation_count
+Indentation should be a multiple of the configured `indentation_count`
 
 Indentation is used to communicate the logical structure of
 a given piece of code. This means that having a consistent
