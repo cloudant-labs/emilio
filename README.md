@@ -61,7 +61,7 @@ Implemented Checks
     * 601 _Variable reused
 
 * 7xx Logical Analysis
-    * 701 case statement with single clause?
+    * 701 case expression has a single clause
 
 * 9XX Internal Errors
     * 901 Unscanable source
