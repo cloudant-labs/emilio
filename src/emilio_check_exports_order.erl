@@ -49,6 +49,9 @@ check_order(Exports, [], Prev, _) ->
 check_order(Exports, Functions, PrevFun, AllExports) ->
     [{Export, EArity} | RestExports] = Exports,
     [Function | RestFunctions] = Functions,
+    PrevName = if not is_tuple(PrevFun) -> '$not_a_function$'; true ->
+        element(3, PrevFun)
+    end,
     FName = element(3, Function),
     FArity = element(4, Function),
     IsExported = lists:member({FName, FArity}, AllExports),
@@ -56,7 +59,7 @@ check_order(Exports, Functions, PrevFun, AllExports) ->
         FName == Export andalso FArity == EArity ->
             % Found an expected function, carry on
             check_order(RestExports, RestFunctions, Function, AllExports);
-        FName == PrevFun andalso not IsExported ->
+        FName == PrevName andalso not IsExported ->
             check_order(Exports, RestFunctions, PrevFun, AllExports);
         IsExported ->
             ?EMILIO_REPORT(Function, 420, {{Export, EArity}, {FName, FArity}}),
