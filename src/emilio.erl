@@ -34,7 +34,7 @@
         $c,
         "config",
         'string',
-        "The config file to use [default: emilio.cfg]"
+        "The config file to use"
     },
     {
         ignore,
