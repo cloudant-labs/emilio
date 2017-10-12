@@ -28,7 +28,6 @@ format_error(126, _) ->
 
 
 run(Lines) ->
-    %io:format(standard_error, "~p~n", [Lines]),
     emilio_lib:foreach_token(fun check_token/3, Lines).
 
 
