@@ -18,6 +18,8 @@
     foreach_token/2,
     foreach_line/2,
 
+    collect_span/2,
+
     prev_line/1,
     curr_line/1,
     next_line/1,
@@ -92,6 +94,32 @@ foreach_line(UserFun, Lines) ->
         end
     end,
     foreach_token(LineFun, Lines).
+
+
+collect_span(Ctx, Token) ->
+    case emilio_anno:ref(Token) of
+        Ref when is_reference(Ref) ->
+            {Start, StartCtx} = find_span_start(Ctx, Ref),
+            collect_span(StartCtx, emilio_anno:ref(Start), [Start]);
+        undefined ->
+            undefined
+    end.
+
+
+collect_span(Ctx, Ref, InitTokens) ->
+    IterFun = fun
+        ({span_end, Anno, _} = Token, IterCtx, Acc) ->
+            case emilio_anno:ref(Anno) of
+                Ref ->
+                    {stop, {[Token | Acc], IterCtx}};
+                _ ->
+                    {continue, [Token | Acc]}
+            end;
+        (Token, _, Acc) ->
+            {continue, [Token | Acc]}
+    end,
+    {Tokens, FinalCtx} = iter_fwd(Ctx, IterFun, InitTokens),
+    {ok, lists:reverse(Tokens), FinalCtx}.
 
 
 prev_line(Ctx) ->
@@ -336,6 +364,21 @@ traverse_line([Token | RestTokens], PrevTokens, Ctx, UserFun) ->
 
 traverse_token(Token, Ctx, UserFun) ->
     UserFun(element(2, Token), Token, Ctx).
+
+
+find_span_start(Ctx, ParentRef) ->
+    IterFun = fun
+        ({span_start, Anno, _} = Token, IterCtx, Acc) ->
+            case emilio_anno:parent_ref(Anno) of
+                ParentRef ->
+                    {stop, {Token, IterCtx}};
+                _ ->
+                    {continue, Acc}
+            end;
+        (_, _, Acc) ->
+            {continue, Acc}
+    end,
+    iter_fwd(Ctx, IterFun, undefined).
 
 
 find_ref(IterFun, Ctx, Ref, Names) ->

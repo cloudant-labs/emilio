@@ -58,13 +58,9 @@ check_reuse(Token, _, {Refs, RefVars}) ->
                 _ ->
                     {Refs, RefVars}
             end;
-        {span_start, _, _} ->
-            {Refs, RefVars};
-        {span_end, _, _} ->
-            {Refs, RefVars};
         {_, _, _} ->
-            case emilio_anno:ref(Token) of
-                Ref when is_reference(Ref) ->
+            case {is_ref_token(Token), emilio_anno:ref(Token)} of
+                {true, Ref} when is_reference(Ref) ->
                     case Refs of
                         [Ref | _] ->
                             RestRefVars = pop_to_ref(Ref, RefVars),
@@ -72,7 +68,7 @@ check_reuse(Token, _, {Refs, RefVars}) ->
                         [_ | _] ->
                             {[Ref | Refs], [Ref | RefVars]}
                     end;
-                undefined ->
+                {false, _} ->
                     {Refs, RefVars}
             end
     end,
@@ -88,3 +84,31 @@ pop_ref(Ref, [_ | RestRefVars]) ->
 
 pop_to_ref(Ref, RefVars) ->
     [Ref | pop_ref(Ref, RefVars)].
+
+
+is_ref_token({'fun', _, {function, _, _}}) ->
+    false;
+is_ref_token({'fun', _, {function, _, _, _}}) ->
+    false;
+is_ref_token(Tuple) when is_tuple(Tuple) ->
+    RefTokens = [
+        function,
+        function_clause,
+        block_start,
+        'if',
+        if_clause,
+        'case',
+        'of',
+        case_clause,
+        'try',
+        try_case_clause,
+        try_catch_clause,
+        'after',
+        'receive',
+        receive_clause,
+        'fun',
+        fun_clause,
+        named_fun,
+        named_fun_clause
+    ],
+    lists:member(element(1, Tuple), RefTokens).

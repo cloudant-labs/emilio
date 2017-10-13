@@ -92,7 +92,7 @@ collect_clause(Token, Ctx, Ref) ->
 
 
 find_span_start(Ctx, Ref) ->
-    find_span(Ctx, Ref, span_end, parent_ref).
+    find_span(Ctx, Ref, span_start, parent_ref).
 
 
 find_span_end(Ctx, Ref) ->
@@ -101,8 +101,8 @@ find_span_end(Ctx, Ref) ->
 
 find_span(Ctx, Ref, Type, RefFun) ->
     IterFun = fun(Token, _, _) ->
-        case element(1, Token) of
-            Type ->
+        case Token of
+            {Type, _, expr} ->
                 case emilio_anno:RefFun(Token) == Ref of
                     true ->
                         {stop, Token};

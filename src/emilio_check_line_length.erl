@@ -99,7 +99,7 @@ is_long_line(MaxLength, Line) ->
         {white_space, Anno, WS} ->
             {_Line, Col} = emilio_anno:lc(Anno),
             (Col + length(WS) - 1) > MaxLength;
-        {span_end, _} ->
+        {span_end, _, _} ->
             is_long_line(MaxLength, lists:sublist(Line, length(Line) - 1));
         {dot, Anno} ->
             {_Line, Col} = emilio_anno:lc(Anno),

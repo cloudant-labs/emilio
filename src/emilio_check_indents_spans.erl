@@ -38,7 +38,7 @@ run(Lines) ->
 % 3) Tokens start on next line: all span lines should be at least one indent
 
 
-check_token(_, {span_start, Anno} = Token, Ctx) ->
+check_token(_, {span_start, Anno, expr} = Token, Ctx) ->
     {Parent, ParentCtx} = find_prev_ref(Ctx, emilio_anno:parent_ref(Anno)),
     {SpanEnd, _} = find_next_ref(Ctx, emilio_anno:ref(Anno)),
     SpanLines = emilio_lib:collect_lines(Ctx, Token, SpanEnd),

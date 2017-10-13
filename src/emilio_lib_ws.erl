@@ -16,7 +16,7 @@
     ws_before/1,
     ws_after/1,
 
-    skip_sep/3
+    skip_span/3
 ]).
 
 
@@ -49,15 +49,17 @@ ws_after(Ctx) ->
     end.
 
 
-skip_sep({sep, _}, _Ctx, Acc) ->
+skip_span({span_start, _, _}, _Ctx, Acc) ->
     {continue, Acc};
-skip_sep(Token, _Ctx, _Acc) ->
+skip_span({span_end, _, _}, _Ctx, Acc) ->
+    {continue, Acc};
+skip_span(Token, _Ctx, _Acc) ->
     {stop, Token}.
 
 
 get_prev(Ctx) ->
-    emilio_lib:iter_rev(Ctx, fun skip_sep/3, undefined).
+    emilio_lib:iter_rev(Ctx, fun skip_span/3, undefined).
 
 
 get_next(Ctx) ->
-    emilio_lib:iter_fwd(Ctx, fun skip_sep/3, undefined).
+    emilio_lib:iter_fwd(Ctx, fun skip_span/3, undefined).

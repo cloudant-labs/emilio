@@ -48,7 +48,7 @@ check(Anno, Token, Ctx) ->
                 false -> ok
             end;
         '|' ->
-            Fun = fun emilio_lib_ws:skip_sep/3,
+            Fun = fun emilio_lib_ws:skip_span/3,
             case emilio_lib:iter_rev(Ctx, Fun, undefined) of
                 {white_space, _, _} -> ok;
                 _ -> ?EMILIO_REPORT(Anno, 242)

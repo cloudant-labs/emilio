@@ -51,12 +51,9 @@ check_token(_, _, _) ->
 
 check_when({'when', Anno}, Ctx) ->
     {Line, _Col} = emilio_anno:lc(Anno),
-    case emilio_anno:ref(Anno) of
-        undefined ->
-            % 'when' token from a type spec
-            ok;
-        Ref ->
-            {ok, Match, MCtx} = emilio_lib:find_ref_rev(Ctx, Ref, ?CLAUSES),
+    Ref = emilio_anno:ref(Anno),
+    case emilio_lib:find_ref_rev(Ctx, Ref, ?CLAUSES) of
+        {ok, Match, MCtx} ->
             case emilio_anno:lc(Match) of
                 {Line, _} ->
                     % Tokens on same line means nothing to check
@@ -65,7 +62,10 @@ check_when({'when', Anno}, Ctx) ->
                     TokenLine = emilio_lib:curr_line(Ctx),
                     MatchLine = emilio_lib:curr_line(MCtx),
                     check_indent_increases(Anno, Match, MatchLine, TokenLine)
-            end
+            end;
+        undefined ->
+            % when from a type or spec
+            ok
     end.
 
 

@@ -36,7 +36,9 @@ check(Anno, Token, Ctx) ->
         ({white_space, _, _}, _, Code) ->
             ?EMILIO_REPORT(Anno, Code),
             {stop, ok};
-        ({sep, _}, _, Code) ->
+        ({span_start, _, _}, _, Code) ->
+            {continue, Code};
+        ({span_end, _, _}, _, Code) ->
             {continue, Code};
         (_, _, _) ->
             {stop, ok}

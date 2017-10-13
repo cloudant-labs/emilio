@@ -21,6 +21,7 @@
     emilio_check_indents_op2,
     emilio_check_indents_spans,
     emilio_check_indents_exports,
+    emilio_check_indents_funs,
     emilio_check_ws_spaces_only,
     emilio_check_ws_file_newline,
     emilio_check_ws_commas,

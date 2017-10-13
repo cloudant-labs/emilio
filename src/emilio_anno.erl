@@ -15,6 +15,7 @@
 
 -export([
     lc/1,
+    depth/1,
     ref/1,
     parent_ref/1,
 
@@ -32,6 +33,16 @@ lc(Anno) when is_list(Anno) ->
 
 lc(Tuple) when is_tuple(Tuple), size(Tuple) >= 2 ->
     lc(element(2, Tuple)).
+
+
+depth(Anno) when is_list(Anno) ->
+    case lists:keyfind(depth, 1, Anno) of
+        {depth, Depth} -> Depth;
+        false -> undefined
+    end;
+
+depth(Tuple) when is_tuple(Tuple), size(Tuple) >= 2 ->
+    depth(element(2, Tuple)).
 
 
 ref(Anno) when is_list(Anno) ->
@@ -82,7 +93,6 @@ set_location(Anno, Loc) ->
 
 copy_ref(SrcAnno, DstAnno) when is_list(SrcAnno), is_list(DstAnno) ->
     Ref = ref(SrcAnno),
-    false = lists:keyfind(ref, 1, DstAnno),
     lists:keystore(ref, 1, DstAnno, {ref, Ref});
 
 copy_ref(Anno, Tuple) when is_list(Anno), is_tuple(Tuple), size(Tuple) >= 2 ->

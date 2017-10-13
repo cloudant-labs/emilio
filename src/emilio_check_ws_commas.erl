@@ -36,7 +36,9 @@ check(Anno, {',', _}, Ctx) ->
         ({white_space, _, _}, _, _) ->
             ?EMILIO_REPORT(Anno, 221),
             {stop, ok};
-        ({sep, _}, _, _) ->
+        ({span_start, _, _}, _, _) ->
+            {continue, nil};
+        ({span_end, _, _}, _, _) ->
             {continue, nil};
         (_, _, _) ->
             {stop, ok}
