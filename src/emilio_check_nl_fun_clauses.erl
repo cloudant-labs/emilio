@@ -21,9 +21,8 @@
 -include("emilio.hrl").
 
 
-format_error(310, Count) ->
-    Fmt = "found an extra ~b empty lines between function clauses",
-    io_lib:format(Fmt, [Count - 1]);
+format_error(310, _) ->
+    "found more than 1 empty line between function clauses";
 format_error(311, _) ->
     "inconsistent empty lines between function clauses".
 
@@ -61,6 +60,6 @@ count_empty_lines([Clause | RestClauses]) ->
             Acc
     end, {InitAnno, 0}, Tokens),
     if Total =< 1 -> ok; true ->
-        ?EMILIO_REPORT(Anno, 310, Total)
+        ?EMILIO_REPORT(Anno, 310)
     end,
     [Total | count_empty_lines(RestClauses)].

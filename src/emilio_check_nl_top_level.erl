@@ -21,13 +21,11 @@
 -include("emilio.hrl").
 
 
-format_error(301, Count) ->
-    io_lib:format("found ~b consecutive empty lines", [Count]);
-format_error(302, Count) when Count < 2 ->
-    io_lib:format("missing ~b empty lines between functions", [2 - Count]);
+format_error(301, _) ->
+    "found more than two consecutive empty lines";
 format_error(302, Count) ->
-    Fmt = "found an extra ~b empty lines between functions",
-    io_lib:format(Fmt, [Count - 2]).
+    Fmt = "there should be 2 empty lines between functions, not ~b",
+    io_lib:format(Fmt, [Count]).
 
 
 run(Lines) ->
