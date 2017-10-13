@@ -29,10 +29,13 @@ Usage
 ---
 
 ```
-Usage: ./emilio [-h <help>] [-c <config>] [-i <ignore>] [-j <jobs>]
-                [-f <report_formatter>] [-w <whitelist>] path [path ...]
+Usage: ./emilio [-h <help>] [-l <list>] [-e <explain>] [-c <config>]
+                [-i <ignore>] [-j <jobs>] [-f <report_formatter>]
+                [-w <whitelist>] path [path ...]
 
   -h, --help       Show this help message
+  -l, --list       List all error codes with a short description
+  -e, --explain    Show explanation for the given error code
   -c, --config     The config file to use
   -i, --ignore     Ignore any file path matching the specified glob
   -j, --jobs       Number of files to process in parallel [default: 4]

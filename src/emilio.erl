@@ -30,6 +30,20 @@
         "Show this help message"
     },
     {
+        list,
+        $l,
+        "list",
+        'boolean',
+        "List all error codes with a short description"
+    },
+    {
+        explain,
+        $e,
+        "explain",
+        'integer',
+        "Show explanation for the given error code"
+    },
+    {
         config,
         $c,
         "config",
@@ -77,12 +91,20 @@ main(Argv) ->
 
 
 execute(Opts, Args) ->
-    case lists:keyfind(help, 1, Opts) of
-        {help, true} ->
-            usage(0);
-        _ ->
-            run(Opts, Args)
-    end.
+    Handlers = [
+        {help, fun(_) -> usage(0) end},
+        {list, fun(_) -> emilio_docs:list_codes() end},
+        {explain, fun emilio_docs:explain_code/1}
+    ],
+    lists:foreach(fun({Arg, Handler}) ->
+        case lists:keyfind(Arg, 1, Opts) of
+            {Arg, Value} ->
+                Handler(Value);
+            _ ->
+                ok
+        end
+    end, Handlers),
+    run(Opts, Args).
 
 
 usage(Status) ->

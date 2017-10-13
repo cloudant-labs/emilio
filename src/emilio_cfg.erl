@@ -38,7 +38,7 @@
 
 compile(Opts) ->
     ets:new(?TABLE, [set, named_table, protected]),
-    {ok, BaseConfigBin} = emilio_util:get_priv("emilio.config"),
+    {ok, BaseConfigBin} = emilio_util:get_priv("priv/emilio.config"),
     {ok, BaseConfig} = consult_bin(BaseConfigBin),
     {ok, FileConfig} = case lists:keyfind(config, 1, Opts) of
         {config, FileName} ->
@@ -104,7 +104,7 @@ validate(K, V, BaseConfig) ->
                     emilio_util:shutdown(1)
             end;
         _ ->
-            emilio_log:warn("Unknown config option: ~p~n", [K])
+            ok
     end.
 
 
