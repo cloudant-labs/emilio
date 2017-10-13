@@ -37,7 +37,7 @@ explain_code(Code) ->
     Codes = gather_codes(),
     case lists:keyfind(Code, 1, Codes) of
         {Code, _, Descr} ->
-            io:format("~n~b : ~s~n", [Code, Descr]),
+            io:format("~n~b - ~s~n", [Code, Descr]),
             emilio_util:shutdown(0);
         _ ->
             io:format("Unknown code: ~b~n", [Code]),
