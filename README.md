@@ -65,6 +65,8 @@ Implemented Checks
 | [126](priv/documentation/126/description.md) | [good](priv/documentation/126/good.erl) | [bad](priv/documentation/126/bad.erl) | Indentation for expression spans should increase by at least two levels |
 | [127](priv/documentation/127/description.md) | [good](priv/documentation/127/good.erl) | [bad](priv/documentation/127/bad.erl) | Clause bodies should be all inline or multiline |
 | [130](priv/documentation/130/description.md) | [good](priv/documentation/130/good.erl) | [bad](priv/documentation/130/bad.erl) | Exports should be indented one level |
+| [141](priv/documentation/141/description.md) | [good](priv/documentation/141/good.erl) | [bad](priv/documentation/141/bad.erl) | Inline funs as arguments should start on the same line as the call |
+| [142](priv/documentation/142/description.md) | [good](priv/documentation/142/good.erl) | [bad](priv/documentation/142/bad.erl) | Inline funs as arguments should end on the last line of the call |
 | [201](priv/documentation/201/description.md) | [good](priv/documentation/201/good.erl) | [bad](priv/documentation/201/bad.erl) | Whitespace should not contain tabs |
 | [202](priv/documentation/202/description.md) | [good](priv/documentation/202/good.erl) | [bad](priv/documentation/202/bad.erl) | Whitespace should not contain carriage returns |
 | [203](priv/documentation/203/description.md) | [good](priv/documentation/203/good.erl) | [bad](priv/documentation/203/bad.erl) | Line endings should not include carriage returns |
