@@ -23,7 +23,7 @@
 
 format_error(121, {Token, Levels}) ->
     Name = element(1, Token),
-    Fmt = "indentation change for ~s clause was ~b, not 1",
+    Fmt = "indentation level change for ~s clause was ~b, not 1",
     io_lib:format(Fmt, [Name, Levels]).
 
 
