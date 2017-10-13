@@ -85,6 +85,13 @@
         "whitelist",
         'string',
         "A CSV file of filename,line,column,code reports to ignore"
+    },
+    {
+        debug_stats,
+        undefined,
+        "debug-stats",
+        'boolean',
+        "Display timing information with the text formatter"
     }
 ]).
 

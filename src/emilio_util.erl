@@ -15,12 +15,23 @@
 
 -export([
     shutdown/1,
+    time_it/3,
     get_priv/1
 ]).
 
 
 shutdown(Status) ->
     erlang:halt(Status, [{flush, true}]).
+
+
+time_it(Type, Key, Action) ->
+    Start = os:timestamp(),
+    try
+        Action()
+    after
+        Diff = timer:now_diff(os:timestamp(), Start),
+        emilio_report:update_stat(Type, Key, Diff)
+    end.
 
 
 get_priv(FileName) ->

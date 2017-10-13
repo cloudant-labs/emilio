@@ -16,12 +16,15 @@
 -export([
     start_link/0,
 
+    queue/1,
+    update/5,
+    wait/0,
+
     cache_file/2,
     get_file/1,
 
-    queue/1,
-    update/5,
-    wait/0
+    update_stat/3,
+    get_stats/0
 ]).
 
 -export([
@@ -42,6 +45,7 @@
 
 -define(WHITELIST, emilio_report_whitelist).
 -define(FILE_CACHE, emilio_report_file_cache).
+-define(STATS, emilio_report_stats).
 
 
 -record(st, {
@@ -61,19 +65,6 @@
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
-
-
-cache_file(FileName, Lines) ->
-    ets:insert(?FILE_CACHE, {FileName, Lines}).
-
-
-get_file(FileName) ->
-    case ets:lookup(?FILE_CACHE, FileName) of
-        [{FileName, Lines}] ->
-            {ok, Lines};
-        [] ->
-            not_found
-    end.
 
 
 queue(FileName) ->
@@ -110,9 +101,36 @@ wait() ->
     end.
 
 
+cache_file(FileName, Lines) ->
+    ets:insert(?FILE_CACHE, {FileName, Lines}).
+
+
+get_file(FileName) ->
+    case ets:lookup(?FILE_CACHE, FileName) of
+        [{FileName, Lines}] ->
+            {ok, Lines};
+        [] ->
+            not_found
+    end.
+
+
+update_stat(Type, Name, MicroSecs) ->
+    Key = {Type, Name},
+    ets:insert_new(?STATS, {Key, 0, 0}),
+    ets:update_counter(?STATS, Key, [{2, MicroSecs}, {3, 1}]).
+
+
+get_stats() ->
+    Raw = ets:tab2list(?STATS),
+    lists:sort(lists:map(fun({{Type, Name}, Time, Count}) ->
+        {Type, Name, Time, Count}
+    end, Raw)).
+
+
 init(_) ->
     init_whitelist(),
     ets:new(?FILE_CACHE, [set, public, named_table]),
+    ets:new(?STATS, [set, public, named_table, {write_concurrency, true}]),
     Fmt = get_formatter(),
     {ok, FmtSt} = Fmt:init(),
     {ok, #st{

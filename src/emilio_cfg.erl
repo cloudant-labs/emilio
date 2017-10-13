@@ -22,6 +22,7 @@
 -define(TABLE, emilio_config).
 
 -define(VALIDATORS, [
+    {boolean, fun is_boolean/1},
     {list, fun is_list/1},
     {pos_integer, fun pos_integer/1},
     {non_neg_integer, fun non_neg_integer/1},

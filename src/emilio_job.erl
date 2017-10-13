@@ -40,10 +40,22 @@ init(FileName) ->
 
 run(FileName) ->
     put(emilio_curr_file, FileName),
-    {ok, Contents} = file:read_file(FileName),
-    Lines = binary:split(Contents, <<"\n">>, [global]),
-    emilio_report:cache_file(FileName, Lines),
-    Tokens = emilio_pp:file(FileName, Contents),
-    lists:foreach(fun(Check) ->
-        Check:run(Tokens)
-    end, ?EMILIO_CHECKS).
+    emilio_util:time_it(file, FileName, fun() ->
+        {ok, Contents} = read_file(FileName),
+        Lines = binary:split(Contents, <<"\n">>, [global]),
+        emilio_report:cache_file(FileName, Lines),
+        Tokens = emilio_util:time_it(op, preprocess, fun() ->
+            emilio_pp:file(FileName, Contents)
+        end),
+        lists:foreach(fun(Check) ->
+            emilio_util:time_it(op, Check, fun() ->
+                Check:run(Tokens)
+            end)
+        end, ?EMILIO_CHECKS)
+    end).
+
+
+read_file(FileName) ->
+    emilio_util:time_it(op, read_file, fun() ->
+        file:read_file(FileName)
+    end).

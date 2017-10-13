@@ -25,7 +25,12 @@ init() ->
 
 
 terminate(_FileCount, _ErrorCount, _St) ->
-    ok.
+    case emilio_cfg:get(debug_stats) of
+        true ->
+            display_timing();
+        false ->
+            ok
+    end.
 
 
 format(FileName, Line, Col, Code, Msg, _St) ->
@@ -52,3 +57,46 @@ display_context(FileName, Line, Count) ->
         io:format("~6b ~s ~s~n", [LineNum, Sep, ContextLine])
     end, lists:zip(lists:seq(MinLine, MaxLine), ContextLines)),
     io:format("~n", []).
+
+
+display_timing() ->
+    io:format("~n", []),
+    AllStats = emilio_report:get_stats(),
+
+    Ops = [{OpName, Time, Count} || {op, OpName, Time, Count} <- AllStats],
+    display_ops(Ops),
+
+    Files = [{FileName, Time} || {file, FileName, Time, 1} <- AllStats],
+    display_files(Files).
+
+
+display_ops(Ops) ->
+    Processed = lists:map(fun({Name, Time, _Count}) ->
+        Total = Time / 1000,
+        {Total, atom_to_list(Name)}
+    end, Ops),
+    Ordered = lists:reverse(lists:sort(Processed)),
+    display_table(Ordered, "Operation").
+
+
+display_files(Files) ->
+    Processed = lists:map(fun({Name, Time}) ->
+        Total = Time / 1000,
+        {Total, Name}
+    end, Files),
+    Ordered = lists:reverse(lists:sort(Processed)),
+    display_table(Ordered, "File Name").
+
+
+display_table(Ordered, Column) ->
+    MaxLen = lists:max([length(element(2, Row)) || Row <- Ordered]),
+    HdrFmt = io_lib:format("  ~~-~b.s  ~~10.s (ms)~n", [MaxLen]),
+    Hdr = io_lib:format(lists:flatten(HdrFmt), [Column, "Total Time"]),
+    Sep = ["=" || _ <- lists:seq(1, length(lists:flatten(Hdr)) - 2)],
+    io:format("~s  ~s~n~n", [Hdr, Sep]),
+    RawFmt = io_lib:format("  ~~-~b.s  ~~10.3f~n", [MaxLen]),
+    Fmt = lists:flatten(RawFmt),
+    lists:foreach(fun({Total, Name}) ->
+        io:format(Fmt, [Name, Total])
+    end, Ordered),
+    io:format("~n~n", []).
