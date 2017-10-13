@@ -104,7 +104,7 @@ validate(K, V, BaseConfig) ->
                     emilio_util:shutdown(1)
             end;
         _ ->
-            ok
+            emilio_log:warn("Unknown config option: ~p~n", [K])
     end.
 
 
