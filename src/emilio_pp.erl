@@ -15,6 +15,7 @@
 
 -export([
     file/1,
+    file/2,
     codes/0,
     format_error/2
 ]).
@@ -28,8 +29,14 @@
 
 file(FilePath) ->
     {ok, Data} = file:read_file(FilePath),
-    DataList = binary_to_list(Data),
-    case emilio_erl_scan:string(DataList, {1, 1}, ?SCAN_OPTS) of
+    file(FilePath, Data).
+
+
+file(FilePath, FileContents) when is_binary(FileContents) ->
+    file(FilePath, binary_to_list(FileContents));
+
+file(_FilePath, FileContents) when is_list(FileContents) ->
+    case emilio_erl_scan:string(FileContents, {1, 1}, ?SCAN_OPTS) of
         {ok, AllTokens, _} ->
             Reverted = revert_annos(AllTokens),
             MacroedTokens = macroize(Reverted),

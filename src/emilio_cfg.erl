@@ -24,6 +24,7 @@
 -define(VALIDATORS, [
     {list, fun is_list/1},
     {pos_integer, fun pos_integer/1},
+    {non_neg_integer, fun non_neg_integer/1},
     {file, fun file/1},
     {formatter, fun formatter/1}
 ]).
@@ -111,6 +112,12 @@ validate(K, V, BaseConfig) ->
 pos_integer(I) when is_integer(I), I > 0 ->
     true;
 pos_integer(_) ->
+    false.
+
+
+non_neg_integer(I) when is_integer(I), I >= 0 ->
+    true;
+non_neg_integer(_) ->
     false.
 
 

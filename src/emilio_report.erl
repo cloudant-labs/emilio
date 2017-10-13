@@ -15,6 +15,10 @@
 
 -export([
     start_link/0,
+
+    cache_file/2,
+    get_file/1,
+
     queue/1,
     update/5,
     wait/0
@@ -37,6 +41,7 @@
 ]).
 
 -define(WHITELIST, emilio_report_whitelist).
+-define(FILE_CACHE, emilio_report_file_cache).
 
 
 -record(st, {
@@ -56,6 +61,19 @@
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+
+
+cache_file(FileName, Lines) ->
+    ets:insert(?FILE_CACHE, {FileName, Lines}).
+
+
+get_file(FileName) ->
+    case ets:lookup(?FILE_CACHE, FileName) of
+        [{FileName, Lines}] ->
+            {ok, Lines};
+        [] ->
+            not_found
+    end.
 
 
 queue(FileName) ->
@@ -94,6 +112,7 @@ wait() ->
 
 init(_) ->
     init_whitelist(),
+    ets:new(?FILE_CACHE, [set, public, named_table]),
     Fmt = get_formatter(),
     {ok, FmtSt} = Fmt:init(),
     {ok, #st{
@@ -292,6 +311,7 @@ format_report(St, FileName) ->
     NewFmtSt = lists:foldl(fun({Line, Col, Code, Msg}, Acc) ->
         Fmt:format(FileName, Line, Col, Code, Msg, Acc)
     end, FmtSt, FileReports),
+    ets:delete(?FILE_CACHE, FileName),
     {{value, FileName}, NewStarted} = queue:out(Started),
     NewReports = dict:erase(FileName, Reports),
     NewFinished = sets:del_element(FileName, Finished),

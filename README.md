@@ -31,7 +31,7 @@ Usage
 ```
 Usage: ./emilio [-h <help>] [-l <list>] [-e <explain>] [-c <config>]
                 [-i <ignore>] [-j <jobs>] [-f <report_formatter>]
-                [-w <whitelist>] path [path ...]
+                [-C <context>] [-w <whitelist>] path [path ...]
 
   -h, --help       Show this help message
   -l, --list       List all error codes with a short description
@@ -40,6 +40,8 @@ Usage: ./emilio [-h <help>] [-l <list>] [-e <explain>] [-c <config>]
   -i, --ignore     Ignore any file path matching the specified glob
   -j, --jobs       Number of files to process in parallel [default: 4]
   -f, --format     Set the output format [default: text]
+  -C, --context    Number of contextual lines to display for text output 
+                   [default: 0]
   -w, --whitelist  A CSV file of filename,line,column,code reports to 
                    ignore
   path             Paths to process, directories are searched recursively

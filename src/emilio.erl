@@ -72,6 +72,13 @@
         "Set the output format [default: text]"
     },
     {
+        context,
+        $C,
+        "context",
+        'integer',
+        "Number of contextual lines to display for text output [default: 0]"
+    },
+    {
         whitelist,
         $w,
         "whitelist",

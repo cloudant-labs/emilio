@@ -29,4 +29,26 @@ terminate(_FileCount, _ErrorCount, _St) ->
 
 
 format(FileName, Line, Col, Code, Msg, _St) ->
-    io:format("~s:~b(~b) - ~b - ~s~n", [FileName, Line, Col, Code, Msg]).
+    io:format("~s:~b(~b) - ~b - ~s~n", [FileName, Line, Col, Code, Msg]),
+    case emilio_cfg:get(context) of
+        0 ->
+            ok;
+        Count ->
+            display_context(FileName, Line, Count)
+    end.
+
+
+display_context(FileName, Line, Count) ->
+    {ok, Lines} = emilio_report:get_file(FileName),
+    MinLine = erlang:max(1, Line - Count),
+    MaxLine = erlang:min(Line + Count, length(Lines)),
+    ContextLines = lists:sublist(Lines, MinLine, MaxLine - MinLine + 1),
+    io:format("~n", []),
+    lists:foreach(fun({LineNum, ContextLine}) ->
+        Sep = case LineNum of
+            Line -> "=>";
+            _ -> ": "
+        end,
+        io:format("~6b ~s ~s~n", [LineNum, Sep, ContextLine])
+    end, lists:zip(lists:seq(MinLine, MaxLine), ContextLines)),
+    io:format("~n", []).
