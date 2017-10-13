@@ -76,7 +76,8 @@
         $C,
         "context",
         'integer',
-        "Number of contextual lines to display for text output [default: 0]"
+        "Number of contextual lines to display "
+            "with the text formatter [default: 0]"
     },
     {
         whitelist,
