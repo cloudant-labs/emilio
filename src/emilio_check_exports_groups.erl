@@ -31,6 +31,7 @@
         {handle_event, 2},
         {handle_call, 2},
         {handle_info, 2},
+        {format_status, 2},
         {code_change, 3}
     ]},
     {gen_server, [
@@ -39,10 +40,26 @@
         {handle_call, 3},
         {handle_cast, 2},
         {handle_info, 2},
+        {format_status, 2},
         {code_change, 3}
     ]},
     {supervisor, [
         {init, 1}
+    ]}
+]).
+
+-define(OPTIONAL_CALLBACKS, [
+    {gen_event, [
+        {terminate, 2},
+        {handle_info, 2},
+        {format_status, 2},
+        {code_change, 3}
+    ]},
+    {gen_server, [
+        {terminate, 2},
+        {handle_info, 2},
+        {format_status, 2},
+        {code_change, 3}
     ]}
 ]).
 
@@ -92,27 +109,29 @@ check_behaviors(_, [], _, _) ->
     ok;
 
 check_behaviors(Idx, [{Anno, Behavior} | RestBehaviors], Exports, Strict) ->
-    case lists:keyfind(Behavior, 1, ?BEHAVIORS) of
-        {Behavior, Callbacks} ->
-            check_behavior(Idx, Anno, Behavior, Callbacks, Exports, Strict);
+    case lists:keymember(Behavior, 1, ?BEHAVIORS) of
+        true ->
+            check_behavior(Idx, Anno, Behavior, Exports, Strict);
         false ->
             ok
     end,
     check_behaviors(Idx + 1, RestBehaviors, Exports, Strict).
 
 
-check_behavior(Idx, BehaviorAnno, Behavior, Callbacks, Exports, Strict) ->
+check_behavior(Idx, BehaviorAnno, Behavior, Exports, Strict) ->
     {Anno1, Group1} = lists:nth(Idx, Exports),
-    case is_behavior(Group1, Callbacks) of
+    Expected = expected_callbacks(Behavior, Group1),
+    case is_behavior(Group1, Expected) of
         true ->
-            if Group1 == Callbacks -> ok; true ->
+            if Group1 == Expected -> ok; true ->
                 ?EMILIO_REPORT(Anno1, 413, Behavior)
             end;
         false when not Strict andalso Idx + 1 =< length(Exports) ->
             {Anno2, Group2} = lists:nth(Idx + 1, Exports),
-            case is_behavior(Group2, Callbacks) of
+            Expected2 = expected_callbacks(Behavior, Group2),
+            case is_behavior(Group2, Expected2) of
                 true ->
-                    if Group2 == Callbacks -> ok; true ->
+                    if Group2 == Expected2 -> ok; true ->
                         ?EMILIO_REPORT(Anno2, 413, Behavior)
                     end;
                 false ->
@@ -171,3 +190,16 @@ reverse_group({Anno, Exports}) ->
 
 is_behavior(Found, Expected) ->
     lists:sort(Found) == lists:sort(Expected).
+
+
+expected_callbacks(Behavior, Provided) ->
+    {_, AllCallbacks} = lists:keyfind(Behavior, 1, ?BEHAVIORS),
+    case lists:keyfind(Behavior, 1, ?OPTIONAL_CALLBACKS) of
+        {Behavior, OptionalCallbacks} ->
+            lists:filter(fun(Callback) ->
+                not lists:member(Callback, OptionalCallbacks) orelse
+                        lists:member(Callback, Provided)
+            end, AllCallbacks);
+        false ->
+            AllCallbacks
+    end.
