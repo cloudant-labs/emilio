@@ -1,7 +1,7 @@
 %%
 %% %CopyrightBegin%
 %%
-%% Copyright Ericsson AB 1998-2017. All Rights Reserved.
+%% Copyright Ericsson AB 1998-2018. All Rights Reserved.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -23,33 +23,33 @@
 %%
 %% NOTE: All guard_bif(), arith_op(), bool_op() and comp_op() must be
 %%       defined in bif.tab as 'ubif', i.e bif without trace wrapper.
-%%
+%%       
 %%       Why?
-%%
+%%       
 %%       Because the compiler uses an optimized instruction for
-%%       the call to these bifs, which when loaded gets a direct
-%%       entry pointer inserted into itself by the loader,
+%%       the call to these bifs, which when loaded gets a direct 
+%%       entry pointer inserted into itself by the loader, 
 %%       instead of a bif table index as for regular bifs.
-%%
-%%       If tracing is enabled on these bifs, when a module is loaded,
-%%       the direct entry pointer inserted into the call instruction
-%%       will be pointing to the trace wrapper, so even if tracing is
-%%       disabled for bifs, the loaded module will call these bifs through
+%%       
+%%       If tracing is enabled on these bifs, when a module is loaded, 
+%%       the direct entry pointer inserted into the call instruction 
+%%       will be pointing to the trace wrapper, so even if tracing is 
+%%       disabled for bifs, the loaded module will call these bifs through 
 %%       the trace wrappers.
-%%
+%%       
 %%       The call instruction in question does not give enough information
-%%       to call trace match function {caller} for it to succeed
+%%       to call trace match function {caller} for it to succeed 
 %%       other then by chance, and the 'return_to' trace flag works just
-%%       as bad, so both will mostly say that the caller is 'undefined'.
+%%       as bad, so both will mostly say that the caller is 'undefined'. 
 %%       Furthermore the calls to these bifs will still generate
-%%       trace messages from the loaded module even if tracing is disabled
+%%       trace messages from the loaded module even if tracing is disabled 
 %%       for them, and no one knows what else might be messed up.
 %%
 %%       That's why!
 %%
 
 -export([bif/2,bif/3,guard_bif/2,
-	 type_test/2,new_type_test/2,old_type_test/2,old_bif/2]).
+   type_test/2,new_type_test/2,old_type_test/2,old_bif/2]).
 -export([arith_op/2,bool_op/2,comp_op/2,list_op/2,send_op/2,op_type/2]).
 
 -export([is_type/2]).
@@ -74,8 +74,10 @@ guard_bif(element, 2) -> true;
 guard_bif(float, 1) -> true;
 guard_bif(floor, 1) -> true;
 guard_bif(hd, 1) -> true;
+guard_bif(is_map_key, 2) -> true;
 guard_bif(length, 1) -> true;
 guard_bif(map_size, 1) -> true;
+guard_bif(map_get, 2) -> true;
 guard_bif(node, 0) -> true;
 guard_bif(node, 1) -> true;
 guard_bif(round, 1) -> true;
@@ -243,11 +245,14 @@ bif(M, F, A) when is_atom(M), is_atom(F), is_integer(A) -> false.
 bif(abs, 1) -> true;
 bif(apply, 2) -> true;
 bif(apply, 3) -> true;
+bif(atom_to_binary, 1) -> true;
 bif(atom_to_binary, 2) -> true;
 bif(atom_to_list, 1) -> true;
 bif(binary_part, 2) -> true;
 bif(binary_part, 3) -> true;
+bif(binary_to_atom, 1) -> true;
 bif(binary_to_atom, 2) -> true;
+bif(binary_to_existing_atom, 1) -> true;
 bif(binary_to_existing_atom, 2) -> true;
 bif(binary_to_integer, 1) -> true;
 bif(binary_to_integer, 2) -> true;
@@ -314,6 +319,7 @@ bif(is_function, 2) -> true;
 bif(is_integer, 1) -> true;
 bif(is_list, 1) -> true;
 bif(is_map, 1) -> true;
+bif(is_map_key, 2) -> true;
 bif(is_number, 1) -> true;
 bif(is_pid, 1) -> true;
 bif(is_port, 1) -> true;
@@ -337,6 +343,7 @@ bif(list_to_tuple, 1) -> true;
 bif(load_module, 2) -> true;
 bif(make_ref, 0) -> true;
 bif(map_size,1) -> true;
+bif(map_get,2) -> true;
 bif(max,2) -> true;
 bif(min,2) -> true;
 bif(module_loaded, 1) -> true;
@@ -379,8 +386,16 @@ bif(spawn_link, 1) -> true;
 bif(spawn_link, 2) -> true;
 bif(spawn_link, 3) -> true;
 bif(spawn_link, 4) -> true;
+bif(spawn_request, 1) -> true;
+bif(spawn_request, 2) -> true;
+bif(spawn_request, 3) -> true;
+bif(spawn_request, 4) -> true;
+bif(spawn_request, 5) -> true;
+bif(spawn_request_abandon, 1) -> true;
 bif(spawn_monitor, 1) -> true;
+bif(spawn_monitor, 2) -> true;
 bif(spawn_monitor, 3) -> true;
+bif(spawn_monitor, 4) -> true;
 bif(spawn_opt, 2) -> true;
 bif(spawn_opt, 3) -> true;
 bif(spawn_opt, 4) -> true;
@@ -389,6 +404,8 @@ bif(split_binary, 2) -> true;
 bif(statistics, 1) -> true;
 bif(term_to_binary, 1) -> true;
 bif(term_to_binary, 2) -> true;
+bif(term_to_iovec, 1) -> true;
+bif(term_to_iovec, 2) -> true;
 bif(throw, 1) -> true;
 bif(time, 0) -> true;
 bif(tl, 1) -> true;
