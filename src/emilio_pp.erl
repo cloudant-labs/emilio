@@ -16,6 +16,7 @@
 -export([
     file/1,
     file/2,
+    string/1,
     codes/0,
     format_error/2
 ]).
@@ -61,6 +62,29 @@ file(_FilePath, FileContents) when is_list(FileContents) ->
             []
     end.
 
+string(StringData) when is_list(StringData) ->
+    case emilio_erl_scan:string(StringData, {1, 1}, ?SCAN_OPTS) of
+        {ok, AllTokens, _} ->
+            Reverted = revert_annos(AllTokens),
+            MacroedTokens = macroize(Reverted),
+            ReDefinedTokens = process_define_args(MacroedTokens),
+            {CodeTokens, _NonCodeTokens} = split_code(ReDefinedTokens),
+            Forms = parse_forms(CodeTokens, []),
+            Linearized = lists:flatmap(fun linearize/1, Forms),
+            Rewhitespaced = rewhitespace(ReDefinedTokens),
+            Coalesced = coalesce_whitespace(Rewhitespaced),
+            Reinserted = reinsert_tokens(Coalesced, Linearized),
+            DeTexted = detextify(Reinserted),
+            emilio_lib:group_lines(DeTexted);
+        {error, {Loc, Module, Error}, _} ->
+            Anno = case Loc of
+                {Line, Col} ->
+                    [{line, Line}, {column, Col}];
+                _ ->
+                    [{line, 0}, {column, 0}]
+            end,
+            {error, {Anno, Module, Error}}
+    end.
 
 codes() ->
     [901, 902].
