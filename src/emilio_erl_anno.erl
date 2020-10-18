@@ -1,7 +1,7 @@
 %%
 %% %CopyrightBegin%
 %%
-%% Copyright Ericsson AB 1996-2015. All Rights Reserved.
+%% Copyright Ericsson AB 1996-2017. All Rights Reserved.
 %%
 %% Licensed under the Apache License, Version 2.0 (the "License");
 %% you may not use this file except in compliance with the License.
@@ -42,17 +42,21 @@
 
 %% Debug: define DEBUG to make sure that annotations are handled as an
 %% opaque type. Note that all abstract code need to be compiled with
-%% DEBUG=true. See also ./erl_pp.erl.
+%% DEBUG=true. See also ./erl_pp.erl and ./erl_parse.yrl.
 
 %-define(DEBUG, true).
 
 -type annotation() :: {'file', filename()}
                     | {'generated', generated()}
                     | {'location', location()}
-                    | {'record', boolean()}
+                    | {'record', record()}
                     | {'text', string()}.
 
+-ifdef(DEBUG).
+-opaque anno() :: [annotation(), ...].
+-else.
 -opaque anno() :: location() | [annotation(), ...].
+-endif.
 -type anno_term() :: term().
 
 -type column() :: pos_integer().
@@ -60,6 +64,7 @@
 -type filename() :: file:filename_all().
 -type line() :: non_neg_integer().
 -type location() :: line() | {line(), column()}.
+-type record() :: boolean().
 -type text() :: string().
 
 -ifdef(DEBUG).
@@ -228,7 +233,7 @@ location({Line, Column}=Location) when ?ALINE(Line), ?ACOLUMN(Column) ->
 location(Anno) ->
     anno_info(Anno, location).
 
--spec record(Anno) -> boolean() when
+-spec record(Anno) -> record() when
       Anno :: anno().
 
 record(Line) when ?ALINE(Line) ->
@@ -292,7 +297,7 @@ set_location(Location, Anno) ->
     set(location, Location, Anno).
 
 -spec set_record(Record, Anno) -> Anno when
-      Record :: boolean(),
+      Record :: record(),
       Anno :: anno().
 
 set_record(Record, Anno) ->
